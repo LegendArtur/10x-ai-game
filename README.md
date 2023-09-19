@@ -19,6 +19,6 @@ AI Wargame1 is a 2-player strategy game featuring an attacker (A) and a defender
 - **Firewalls (F):** Robust against incoming attacks but less effective at dealing damage.
 
 ### Unit Health:
-Each unit begins with a health level ranging from 0 to 9. All units start with full health (9). If a unit's health drops to or below 0, it's removed from the board. If your AI's health reaches 0, you lose the game.
+Each unit begins with a health level ranging from 0 to 9. All units start with full health (9). If a unit's health drops to or below 0, it's removed from the board. If your AI's health reaches 0, you lose the game!
 
 **Master the Art of Strategy and Conquer the Digital Battlefield!**
