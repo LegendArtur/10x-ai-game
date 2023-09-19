@@ -4,9 +4,9 @@ Enter a futuristic world where AI titans clash in epic battles for dominance. Ta
 
 ## 10x Developers:
 
-**Artur Gubaidullin** 40208924
-**Sam Wong** 40209013
-**Rana Gohar** 40117475
+- **Artur Gubaidullin** 40208924
+- **Sam Wong** 40209013
+- **Rana Gohar** 40117475
 
 ## Overview:
 AI Wargame1 is a 2-player strategy game featuring an attacker (A) and a defender (D) on a 5 × 5 board. The objective is simple: destroy your opponent's AI unit to secure victory. Each player commands a team of 6 units with various types, including the powerful AI, offensive Viruses, defensive Techs, generic Programs, and sturdy Firewalls.
