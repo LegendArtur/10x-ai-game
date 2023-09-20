@@ -5,7 +5,7 @@ Enter a futuristic world where AI titans clash in epic battles for dominance. Ta
 ## 10x Developers:
 
 - **Artur Gubaidullin** 40208924
-- **Sam Wong** 40209013
+- **Samuel Wong** 40209013
 - **Rana Gohar** 40117475
 
 ## Overview:
