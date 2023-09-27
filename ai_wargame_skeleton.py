@@ -321,9 +321,35 @@ class Game:
         """Validate a move expressed as a CoordPair. TODO: WRITE MISSING CODE!!!"""
         if not self.is_valid_coord(coords.src) or not self.is_valid_coord(coords.dst):
             return False
+
+        # Check if move is to an adjacent cell
+        if coords.dst != coords.src and coords.dst not in coords.src.iter_adjacent():
+            return False
+        
         unit = self.get(coords.src)
         if unit is None or unit.player != self.next_player:
             return False
+
+        #Check if an AI, a Firewall or a Program 
+        if unit.type.value == 0 or unit.type.value == 3 or unit.type.value == 4:
+            # Check if the move is valid for the specific units
+            if unit.player == Player.Attacker:
+                # The attacker’s AI, Firewall and Program can only move up or left.
+                if coords.dst.row == coords.src.row+1 or coords.dst.col == coords.src.row+1:
+                    return False
+            else:
+                # The defender’s AI, Firewall and Program can only move down or right.
+                if coords.dst.row == coords.src.row-1 or coords.dst.col == coords.src.col-1:
+                    return False
+            
+            # Check if wants to move but is engaged in combat
+            if self.get(coords.dst) == None:
+                for coord in coords.src.iter_adjacent():
+                    if self.get(coord) is not None and self.get(coord).player != self.next_player:
+                        print(f"You are engaged in combat, {coords.src} cannot move!")
+                        return False
+
+        
         unit = self.get(coords.dst)
         return True#(unit is None)
 
@@ -635,7 +661,7 @@ def main():
     # create a new game
     game = Game(options=options)
 
-    logfile.write(f"2. Initialtial game board:\n{game.get_board()}\n")
+    logfile.write(f"\n2. Initialtial game board:\n{game.get_board()}\n3. Gameplay trace:\n")
 
     # the main game loop
     try:
