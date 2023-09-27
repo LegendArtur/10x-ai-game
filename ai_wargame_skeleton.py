@@ -8,10 +8,18 @@ from time import sleep
 from typing import Tuple, TypeVar, Type, Iterable, ClassVar
 import random
 import requests
+import os
 
 # maximum and minimum values for our heuristic scores (usually represents an end of game condition)
 MAX_HEURISTIC_SCORE = 2000000000
 MIN_HEURISTIC_SCORE = -2000000000
+
+##############################################################################################################
+# LOGGING
+
+logfile = open('templog.txt', "w")
+
+##############################################################################################################
 
 class UnitType(Enum):
     """Every unit type."""
@@ -332,12 +340,17 @@ class Game:
         self.next_player = self.next_player.next()
         self.turns_played += 1
 
-    def to_string(self) -> str:
-        """Pretty text representation of the game."""
-        dim = self.options.dim
+    def get_output(self) -> str:
         output = ""
         output += f"Next player: {self.next_player.name}\n"
         output += f"Turns played: {self.turns_played}\n"
+
+        return output
+
+    def get_board(self) -> str:
+        """Pretty text representation of the game."""
+        dim = self.options.dim
+        output = ""
         coord = Coord()
         output += "\n   "
         for col in range(dim):
@@ -361,7 +374,7 @@ class Game:
 
     def __str__(self) -> str:
         """Default string representation of a game."""
-        return self.to_string()
+        return self.get_output() + self.get_board()
     
     def is_valid_coord(self, coord: Coord) -> bool:
         """Check if a Coord is valid within out board dimensions."""
@@ -399,7 +412,9 @@ class Game:
                 mv = self.read_move()
                 (success,result) = self.perform_move(mv)
                 if success:
+                    logfile.write(f"Player {self.next_player.name}: \n")
                     print(f"Player {self.next_player.name}: ",end='')
+                    logfile.write(result)
                     print(result)
                     self.next_turn()
                     break
@@ -537,19 +552,39 @@ def main():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--max_depth', type=int, help='maximum search depth')
     parser.add_argument('--max_time', type=float, help='maximum search time')
+    parser.add_argument('--max_moves', type=float, help='maximum search time')
     parser.add_argument('--game_type', type=str, default="manual", help='game type: auto|attacker|defender|manual')
+    parser.add_argument('--alpha_beta', type=bool, default="false", help='if a player is an AI, whether alpha-beta is on or off')
+    parser.add_argument('--heuristic_type', type=str, help='heuristic type: e0|e1|e2')
     parser.add_argument('--broker', type=str, help='play via a game broker')
     args = parser.parse_args()
 
+    logfileName = f"gameTrace-{args.alpha_beta}-{args.max_time}-{args.max_moves}.txt"
+    counter = 0
+    while os.path.exists(logfileName):
+        logfileName = f"gameTrace-{args.alpha_beta}-{args.max_time}-{args.max_moves}-{counter}.txt"
+        counter += 1
+
+    logfile.write(f"1. The game parameters:\n\ta. Timeout (in s): {args.max_time}\n\tb. Max number of turns: {args.max_moves}\n",)
+
+    
     # parse the game type
     if args.game_type == "attacker":
         game_type = GameType.AttackerVsComp
+        logfile.write(f"\tc. Play mode: Attacker (Human) vs Defender (AI)\n")
     elif args.game_type == "defender":
         game_type = GameType.CompVsDefender
+        logfile.write(f"\tc. Play mode: Attacker (AI) vs Defender (Human)\n")
     elif args.game_type == "manual":
         game_type = GameType.AttackerVsDefender
+        logfile.write(f"\tc. Play mode: Attacker (Human) vs Defender (Human)\n")
     else:
         game_type = GameType.CompVsComp
+        logfile.write(f"\tc. Play mode: Attacker (AI) vs Defender (AI)\n")
+
+    if not args.game_type == "manual":
+        logfile.write(f"\td. Alpha-Beta is:\n", ("on" if args.alpha_beta else "off"))
+        logfile.write(f"\te. Heuristic: {args.heuristic_type}\n",)
 
     # set up game options
     options = Options(game_type=game_type)
@@ -565,30 +600,41 @@ def main():
     # create a new game
     game = Game(options=options)
 
-    # the main game loop
-    while True:
-        print()
-        print(game)
-        winner = game.has_winner()
-        if winner is not None:
-            print(f"{winner.name} wins!")
-            break
-        if game.options.game_type == GameType.AttackerVsDefender:
-            game.human_turn()
-        elif game.options.game_type == GameType.AttackerVsComp and game.next_player == Player.Attacker:
-            game.human_turn()
-        elif game.options.game_type == GameType.CompVsDefender and game.next_player == Player.Defender:
-            game.human_turn()
-        else:
-            player = game.next_player
-            move = game.computer_turn()
-            if move is not None:
-                game.post_move_to_broker(move)
-            else:
-                print("Computer doesn't know what to do!!!")
-                exit(1)
+    logfile.write(f"2. Initialtial game board:\n{game.get_board()}\n")
 
+    # the main game loop
+    try:
+        while True:
+            print()
+            print(game)
+            winner = game.has_winner()
+            if winner is not None:
+                print(f"{winner.name} wins!")
+                logfile.close()
+                os.rename('templog.txt', logfileName)
+                break
+            if game.options.game_type == GameType.AttackerVsDefender:
+                game.human_turn()
+            elif game.options.game_type == GameType.AttackerVsComp and game.next_player == Player.Attacker:
+                game.human_turn()
+            elif game.options.game_type == GameType.CompVsDefender and game.next_player == Player.Defender:
+                game.human_turn()
+            else:
+                player = game.next_player
+                move = game.computer_turn()
+                if move is not None:
+                    game.post_move_to_broker(move)
+                else:
+                    print("Computer doesn't know what to do!!!")
+                    logfile.close()
+                    os.rename('templog.txt', logfileName)
+                    exit(1)
+    except KeyboardInterrupt:
+        print("Game interrupted by user.")
+        logfile.close()
+        os.rename('templog.txt', logfileName)
 ##############################################################################################################
 
 if __name__ == '__main__':
     main()
+
