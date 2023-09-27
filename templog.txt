@@ -1,0 +1,14 @@
+1. The game parameters:
+	a. Timeout (in s): None
+	b. Max number of turns: None
+	c. Play mode: Attacker (Human) vs Defender (Human)
+2. Initialtial game board:
+
+    0   1   2   3   4  
+A: dA9 dT9 dF9  .   .  
+B: dT9 dP9  .   .   .  
+C: dF9  .   .   .  aP9 
+D:  .   .   .  aF9 aV9 
+E:  .   .  aP9 aV9 aA9 
+
+Player Attacker: 

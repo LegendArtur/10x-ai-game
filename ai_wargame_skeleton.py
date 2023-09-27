@@ -342,6 +342,7 @@ class Game:
                     if temp == None:
                         continue
                     temp.mod_health(-2)
+
                     self.remove_dead(units)
                 unit.mod_health(-9)
                 self.remove_dead(coords.src)
@@ -361,10 +362,10 @@ class Game:
                     #if combat, they damage each other
                     target.mod_health(-(unit.damage_amount(target)))
                     unit.mod_health(-(target.damage_amount(unit)))
-                    if not target.is_alive():
-                        self.remove_dead(target)
-                    if not unit.is_alive():
-                        self.remove_dead(unit)
+                    #redundant if not target.is_alive():
+                    self.remove_dead(coords.dst)
+                    #redundant if not unit.is_alive():
+                    self.remove_dead(coords.src)
                     return (True, "")
 
         return (False,"invalid move")
