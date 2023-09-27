@@ -330,18 +330,43 @@ class Game:
     def perform_move(self, coords : CoordPair) -> Tuple[bool,str]:
         """Validate and perform a move expressed as a CoordPair. TODO: WRITE MISSING CODE!!!"""
         if self.is_valid_move(coords):
+            #self destruct
             unit = self.get(coords.src)
             target = self.get(coords.dst)
-            if target == None:
-                self.set(coords.dst,self.get(coords.src))
-                self.set(coords.src,None)
-                return (True,"")
-            elif target.player == unit.player:
-                target.mod_health(unit.repair_amount(target))
+            if coords.src == coords.dst:
+                area = coords.src.iter_range(1)
+                for units in area:
+                    if coords.src == units:
+                        continue
+                    temp = self.get(units)
+                    if temp == None:
+                        continue
+                    temp.mod_health(-2)
+                    self.remove_dead(units)
+                unit.mod_health(-9)
+                self.remove_dead(coords.src)
                 return (True, "")
             else:
-                target.mod_health(-(unit.damage_amount(target)))
-                return (True, "")
+                #standard movement or interaction
+                if target == None:
+                    self.set(coords.dst,self.get(coords.src))
+                    self.set(coords.src,None)
+                    return (True,"")
+                elif target.player == unit.player:
+                    if unit.repair_amount(target) == 0 or target.health == 9:
+                        return (False, "invalid move")
+                    target.mod_health(unit.repair_amount(target))
+                    return (True, "")
+                else:
+                    #if combat, they damage each other
+                    target.mod_health(-(unit.damage_amount(target)))
+                    unit.mod_health(-(target.damage_amount(unit)))
+                    if not target.is_alive():
+                        self.remove_dead(target)
+                    if not unit.is_alive():
+                        self.remove_dead(unit)
+                    return (True, "")
+
         return (False,"invalid move")
 
     def next_turn(self):
