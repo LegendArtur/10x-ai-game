@@ -323,7 +323,7 @@ class Game:
             return False
 
         # Check if move is to an adjacent cell
-        if coord not in coords.src.iter_adjacent():
+        if coords.dst != coords.src and coords.dst not in coords.src.iter_adjacent():
             return False
         
         unit = self.get(coords.src)
@@ -332,18 +332,23 @@ class Game:
 
         #Check if an AI, a Firewall or a Program 
         if unit.type.value == 0 or unit.type.value == 3 or unit.type.value == 4:
-            # Check if are engaged in combat
-            for coord in coords.src.iter_adjacent():
-                if self.get(coord) is not None and self.get(coord).player != self.next_player:
-                    return False
-
             # Check if the move is valid for the specific units
-            # if unit.player == Player.Attacker:
-            #     if coords.dst.row == 0 or coords.dst.col == 0:
-            #         return False
-            # else:
-            #     if coords.dst.row == self.options.dim-1 or coords.dst.col == self.options.dim-1:
-            #         return False
+            if unit.player == Player.Attacker:
+                # The attacker’s AI, Firewall and Program can only move up or left.
+                if coords.dst.row == coords.src.row+1 or coords.dst.col == coords.src.row+1:
+                    return False
+            else:
+                # The defender’s AI, Firewall and Program can only move down or right.
+                if coords.dst.row == coords.src.row-1 or coords.dst.col == coords.src.col-1:
+                    return False
+            
+            # Check if wants to move but is engaged in combat
+            if self.get(coords.dst) == None:
+                for coord in coords.src.iter_adjacent():
+                    if self.get(coord) is not None and self.get(coord).player != self.next_player:
+                        print(f"You are engaged in combat, {coords.src} cannot move!")
+                        return False
+
         
         unit = self.get(coords.dst)
         return True#(unit is None)
