@@ -373,18 +373,18 @@ class Game:
                     self.remove_dead(units)
                 unit.mod_health(-9)
                 self.remove_dead(coords.src)
-                return (True, "")
+                return (True, coords.to_string())
             else:
                 #standard movement or interaction
                 if target == None:
                     self.set(coords.dst,self.get(coords.src))
                     self.set(coords.src,None)
-                    return (True,"")
+                    return (True, coords.to_string())
                 elif target.player == unit.player:
                     if unit.repair_amount(target) == 0 or target.health == 9:
                         return (False, "invalid move")
                     target.mod_health(unit.repair_amount(target))
-                    return (True, "")
+                    return (True, coords.to_string())
                 else:
                     #if combat, they damage each other
                     target.mod_health(-(unit.damage_amount(target)))
@@ -393,7 +393,7 @@ class Game:
                     self.remove_dead(coords.dst)
                     #redundant if not unit.is_alive():
                     self.remove_dead(coords.src)
-                    return (True, "")
+                    return (True, coords.to_string())
 
         return (False,"invalid move")
 
