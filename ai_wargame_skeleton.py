@@ -474,10 +474,10 @@ class Game:
                 mv = self.read_move()
                 (success,result) = self.perform_move(mv)
                 if success:
-                    logfile.write(f"Player {self.next_player.name}: \n")
+                    logfile.write(f"Player {self.next_player.name}: ")
                     print(f"Player {self.next_player.name}: ",end='')
-                    logfile.write(result)
-                    print(result)
+                    logfile.write(result + "\n")
+                    print(result + "\n")
                     self.next_turn()
                     break
                 else:
