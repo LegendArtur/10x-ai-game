@@ -474,10 +474,13 @@ class Game:
                 mv = self.read_move()
                 (success,result) = self.perform_move(mv)
                 if success:
+                    logfile.write(f"Turn #{self.turns_played}: \n")
                     logfile.write(f"Player {self.next_player.name}: ")
                     print(f"Player {self.next_player.name}: ",end='')
                     logfile.write(result + "\n")
                     print(result + "\n")
+
+                    logfile.write(self.get_board() + "\n")
                     self.next_turn()
                     break
                 else:
@@ -671,7 +674,8 @@ def main():
             print(game)
             winner = game.has_winner()
             if winner is not None:
-                print(f"{winner.name} wins!")
+                print(f"{winner.name} wins in {game.turns_played} turns!")
+                logfile.write(f"{winner.name} wins in {game.turns_played} turns!\n")
                 logfile.close()
                 os.rename('templog.txt', logfileName)
                 break
@@ -693,6 +697,7 @@ def main():
                     exit(1)
     except KeyboardInterrupt:
         print("Game interrupted by user.")
+        logfile.write("Game interrupted by user.\n")
         logfile.close()
         os.rename('templog.txt', logfileName)
 ##############################################################################################################
