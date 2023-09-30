@@ -455,51 +455,34 @@ class Game:
             else:
                 print('Invalid coordinates! Try again.')
     
-     def human_turn(self):
+    def human_turn(self):
         """Human player plays a move (or get via broker)."""
-        # Initialize an empty string for gameplay_trace
-        gameplay_trace = ""  
-        
-        # Open the log file for writing
-        with open(logfileName, "a") as logfile:            
-            if self.options.broker is not None:
-                print("Getting next move with auto-retry from game broker...")
-                while True:
-                    mv = self.get_move_from_broker()
-                    if mv is not None:
-                        (success, result) = self.perform_move(mv)
-                        print(f"Broker {self.next_player.name}: ", end='')
-                        print(result)
-                        if success:
-                            self.next_turn()
-                            break
-                    sleep(0.1)
-            else:
-                while True:
-                    s = input(F'Player {self.next_player.name}, enter your move: ')
-                    print(f"You entered: {s}")  # Add this line to debug
-                    coords = CoordPair.from_string(s)
-                    if coords is not None and self.is_valid_coord(coords.src) and self.is_valid_coord(coords.dst):
-                        (success, result) = self.perform_move(coords)
-                        if success:
-                            print(f"Player {self.next_player.name}: ", end='')
-                            print(result + "\n")
-                            action_taken = f"move from {coords.src} to {coords.dst}" 
-                            gameplay_trace = (
-                                f"\nTurn: #{self.turns_played}\n"
-                                f"Player: {self.next_player.name}\n"
-                                f"Action: {action_taken}\n"
-                            )
-                            logfile.write(gameplay_trace)  
-                            self.next_turn()
-                            break
-                        else:
-                            print("The move is not valid! Try again.")
-                    else:
-                        print('Invalid coordinates! Try again.')
+        if self.options.broker is not None:
+            print("Getting next move with auto-retry from game broker...")
+            while True:
+                mv = self.get_move_from_broker()
+                if mv is not None:
+                    (success,result) = self.perform_move(mv)
+                    print(f"Broker {self.next_player.name}: ",end='')
+                    print(result)
+                    if success:
+                        self.next_turn()
+                        break
+                sleep(0.1)
+        else:
+            while True:
+                mv = self.read_move()
+                (success,result) = self.perform_move(mv)
+                if success:
+                    logfile.write(f"Player {self.next_player.name}: ")
+                    print(f"Player {self.next_player.name}: ",end='')
+                    logfile.write(result + "\n")
+                    print(result + "\n")
+                    self.next_turn()
+                    break
+                else:
+                    print("The move is not valid! Try again.")
 
-        return gameplay_trace  
-         
     def computer_turn(self) -> CoordPair | None:
         """Computer plays a move."""
         mv = self.suggest_move()
