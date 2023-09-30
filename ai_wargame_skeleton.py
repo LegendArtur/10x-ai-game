@@ -604,97 +604,91 @@ class Game:
         except Exception as error:
             print(f"Broker error: {error}")
         return None
-
+#function to define log game information
+    def game_info(logfile, args, game):
+        logfile.write("1. The game parameters:\n")
+        logfile.write(f"\ta. Timeout (in s): {args.max_time}\n")
+        logfile.write(f"\tb. Max number of turns: {args.max_moves}\n")
+        
+        # Set play mode to Human vs. Human
+        play_mode = "Attacker (Human) vs Defender (Human)"
+        logfile.write(f"\tc. Play mode: {play_mode}\n")
 ##############################################################################################################
-
-def main():
-    # parse command line arguments
-    parser = argparse.ArgumentParser(
-        prog='ai_wargame',
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('--max_depth', type=int, help='maximum search depth')
-    parser.add_argument('--max_time', type=float, help='maximum search time')
-    parser.add_argument('--max_moves', type=float, help='maximum search time')
-    parser.add_argument('--game_type', type=str, default="manual", help='game type: auto|attacker|defender|manual')
-    parser.add_argument('--alpha_beta', type=bool, default="false", help='if a player is an AI, whether alpha-beta is on or off')
-    parser.add_argument('--heuristic_type', type=str, help='heuristic type: e0|e1|e2')
-    parser.add_argument('--broker', type=str, help='play via a game broker')
-    args = parser.parse_args()
-
-    logfileName = f"gameTrace-{args.alpha_beta}-{args.max_time}-{args.max_moves}.txt"
-    counter = 0
-    while os.path.exists(logfileName):
-        logfileName = f"gameTrace-{args.alpha_beta}-{args.max_time}-{args.max_moves}-{counter}.txt"
-        counter += 1
-
-    logfile.write(f"1. The game parameters:\n\ta. Timeout (in s): {args.max_time}\n\tb. Max number of turns: {args.max_moves}\n",)
-
+    def main():
+        global logfileName
+        # parse command line arguments
+        parser = argparse.ArgumentParser(
+            prog='ai_wargame',
+            formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+        parser.add_argument('--max_depth', type=int, help='maximum search depth')
+        parser.add_argument('--max_time', type=float, help='maximum search time')
+        parser.add_argument('--max_moves', type=float, help='maximum search time')
+        parser.add_argument('--game_type', type=str, default="manual", help='game type: auto|attacker|defender|manual')
+        parser.add_argument('--alpha_beta', type=bool, default="false", help='if a player is an AI, whether alpha-beta is on or off')
+        parser.add_argument('--heuristic_type', type=str, help='heuristic type: e0|e1|e2')
+        parser.add_argument('--broker', type=str, help='play via a game broker')
+        args = parser.parse_args()
     
-    # parse the game type
-    if args.game_type == "attacker":
-        game_type = GameType.AttackerVsComp
-        logfile.write(f"\tc. Play mode: Attacker (Human) vs Defender (AI)\n")
-    elif args.game_type == "defender":
-        game_type = GameType.CompVsDefender
-        logfile.write(f"\tc. Play mode: Attacker (AI) vs Defender (Human)\n")
-    elif args.game_type == "manual":
-        game_type = GameType.AttackerVsDefender
-        logfile.write(f"\tc. Play mode: Attacker (Human) vs Defender (Human)\n")
-    else:
-        game_type = GameType.CompVsComp
-        logfile.write(f"\tc. Play mode: Attacker (AI) vs Defender (AI)\n")
+        logfileName = f"gameTrace-{args.alpha_beta}-{args.max_time}-{args.max_moves}.txt"
+        counter = 0
+        while os.path.exists(logfileName):
+            logfileName = f"gameTrace-{args.alpha_beta}-{args.max_time}-{args.max_moves}-{counter}.txt"
+            counter += 1
+    
+        # Set up game options
+        game_type = GameType.AttackerVsDefender  # Human vs. Human
+        options = Options(game_type=game_type)
+    
+        # Override class defaults via command line options
+        if args.max_depth is not None:
+            options.max_depth = args.max_depth
+        if args.max_time is not None:
+            options.max_time = args.max_time
+    
+        # Create a new game
+        game = Game(options=options)
+    
+        # Open the log file for writing
+        with open(logfileName, "w") as logfile:
+            # Log game information
+            game_info(logfile, args, game)
+            # Write the initial game board
+            logfile.write(f"\n2. Initialtial game board:\n{game.get_board()}\n3. Gameplay trace:\n")
+        # The main game loop
+        try:
+            while True:
+                print()
+                print(game)
+                winner = game.has_winner()
+                if winner is not None:
+                    # Display the winner and the number of turns
+                    winner_str = f"{winner.name} wins in {game.turns_played} turns!"
+                    print(winner_str)
+    
+                    # Open the log file in append mode and write the winner information
+                    with open(logfileName, "a") as logfile:
+                        logfile.write(f"4. The winner of the game:\n{winner_str}\n")
+    
+                    break
+    
+                # Call the human_turn function
+                gameplay_trace = game.human_turn()
+    
+                # Print the captured gameplay_trace
+                print("Gameplay Trace:")
+                print(gameplay_trace)
+    
+                # Open the log file in append mode and write the updated game board
+                with open(logfileName, "a") as logfile:
+                    logfile.write(f"\n{game.get_board()}\n")
+    
+        except KeyboardInterrupt:
+            print("Game interrupted by user.")
+    
+            # Open the log file in append mode and write the interruption message
+            with open(logfileName, "a") as logfile:
+                logfile.write("Game interrupted by user.\n")
 
-    if not args.game_type == "manual":
-        logfile.write(f"\td. Alpha-Beta is:\n", ("on" if args.alpha_beta else "off"))
-        logfile.write(f"\te. Heuristic: {args.heuristic_type}\n",)
-
-    # set up game options
-    options = Options(game_type=game_type)
-
-    # override class defaults via command line options
-    if args.max_depth is not None:
-        options.max_depth = args.max_depth
-    if args.max_time is not None:
-        options.max_time = args.max_time
-    if args.broker is not None:
-        options.broker = args.broker
-
-    # create a new game
-    game = Game(options=options)
-
-    logfile.write(f"\n2. Initialtial game board:\n{game.get_board()}\n3. Gameplay trace:\n")
-
-    # the main game loop
-    try:
-        while True:
-            print()
-            print(game)
-            winner = game.has_winner()
-            if winner is not None:
-                print(f"{winner.name} wins!")
-                logfile.close()
-                os.rename('templog.txt', logfileName)
-                break
-            if game.options.game_type == GameType.AttackerVsDefender:
-                game.human_turn()
-            elif game.options.game_type == GameType.AttackerVsComp and game.next_player == Player.Attacker:
-                game.human_turn()
-            elif game.options.game_type == GameType.CompVsDefender and game.next_player == Player.Defender:
-                game.human_turn()
-            else:
-                player = game.next_player
-                move = game.computer_turn()
-                if move is not None:
-                    game.post_move_to_broker(move)
-                else:
-                    print("Computer doesn't know what to do!!!")
-                    logfile.close()
-                    os.rename('templog.txt', logfileName)
-                    exit(1)
-    except KeyboardInterrupt:
-        print("Game interrupted by user.")
-        logfile.close()
-        os.rename('templog.txt', logfileName)
 ##############################################################################################################
 
 if __name__ == '__main__':
