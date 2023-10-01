@@ -330,17 +330,25 @@ class Game:
         unit = self.get(coords.src)
         if unit is None or unit.player != self.next_player:
             return False
+        
+        dstunit = self.get(coords.dst)
 
         #Check if an AI, a Firewall or a Program 
         if unit.type.value == 0 or unit.type.value == 3 or unit.type.value == 4:
             # Check if the move is valid for the specific units
             if unit.player == Player.Attacker:
                 # The attacker’s AI, Firewall and Program can only move up or left.
-                if coords.dst.row == coords.src.row+1 or coords.dst.col == coords.src.row+1:
+                if coords.dst.row == coords.src.row+1 or coords.dst.col == coords.src.col+1:
+                    # If engaged in combat, should still be able to attack and repair.
+                    if dstunit is not None and dstunit.player == Player.Defender:
+                        return True
                     return False
             else:
                 # The defender’s AI, Firewall and Program can only move down or right.
                 if coords.dst.row == coords.src.row-1 or coords.dst.col == coords.src.col-1:
+                    # If engaged in combat, should still be able to attack and repair.
+                    if dstunit is not None and dstunit.player == Player.Attacker:
+                        return True
                     return False
             
             # Check if wants to move but is engaged in combat
@@ -349,10 +357,8 @@ class Game:
                     if self.get(coord) is not None and self.get(coord).player != self.next_player:
                         print(f"You are engaged in combat, {coords.src} cannot move!")
                         return False
-
-        
-        unit = self.get(coords.dst)
-        return True#(unit is None)
+                    
+        return True
 
     def perform_move(self, coords : CoordPair) -> Tuple[bool,str]:
         """Validate and perform a move expressed as a CoordPair. TODO: WRITE MISSING CODE!!!"""
