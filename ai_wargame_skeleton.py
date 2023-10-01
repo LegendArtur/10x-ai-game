@@ -274,7 +274,7 @@ class Game:
         self.set(Coord(md,md-2),Unit(player=Player.Attacker,type=UnitType.Program))
         self.set(Coord(md-1,md-1),Unit(player=Player.Attacker,type=UnitType.Firewall))
         #initialize the turns_played to start from 1
-        self.turns_played = 1
+        self.turns_played = 0
     def clone(self) -> Game:
         """Make a new copy of a game for minimax recursion.
 
