@@ -614,10 +614,9 @@ class Game:
             print(f"Broker error: {error}")
         return None
     def heuristic_e0(self) -> int:
-            
             player1_score = 0
             player2_score = 0
-
+        
             weights = {
                 'Virus': 3,
                 'Tech': 3,
@@ -625,13 +624,15 @@ class Game:
                 'Program': 3,
                 'AI': 9999    
             }
+        #Initialize the health to 9 for each player 
             HealthScore = {
-                'AI': 9,
-                'Tech': 9,
-                'Virus': 9,
-                'Program': 9,
-                'Firewall': 9
+                'AI': 0,
+                'Tech': 0,
+                'Virus': 0,
+                'Program': 0,
+                'Firewall': 0
             }
+           #Iterate through the 
             for coord in CoordPair.from_dim(self.options.dim).iter_rectangle():
                 unit = self.get(coord)
                 if unit is not None:
