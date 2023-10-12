@@ -546,11 +546,53 @@ class Game:
             return (0, move_candidates[0], 1)
         else:
             return (0, None, 0)
+    
+    def minimax_alpha_beta(self, game, depth, alpha, beta, maximizing_player):
+        if depth == 0 or game.is_finished():
+            return game.heuristic_e0()
 
+        if maximizing_player:
+            max_eval = float('-inf')
+            for move in game.move_candidates():
+                child_game = game.clone()
+                child_game.perform_move(move)
+                eval = game.minimax_alpha_beta(child_game, depth - 1, alpha, beta, False)
+                max_eval = max(max_eval, eval)
+                alpha = max(alpha, eval)
+                if beta <= alpha:
+                    break  # Beta cut-off
+            return max_eval
+        else:
+            min_eval = float('inf')
+            for move in game.move_candidates():
+                child_game = game.clone()
+                child_game.perform_move(move)
+                eval = game.minimax_alpha_beta(child_game, depth - 1, alpha, beta, True)
+                min_eval = min(min_eval, eval)
+                beta = min(beta, eval)
+                if beta <= alpha:
+                    break  # Alpha cut-off
+            return min_eval
+
+    def get_best_move(self, depth):
+        best_move = None
+        max_eval = float('-inf')
+
+        for move in self.move_candidates():
+            child_game = self.clone()
+            child_game.perform_move(move)
+            eval = self.minimax_alpha_beta(child_game, depth, float('-inf'), float('inf'), False)
+
+            if eval > max_eval:
+                max_eval = eval
+                best_move = move
+
+        return max_eval, best_move, 0
+    
     def suggest_move(self) -> CoordPair | None:
         """Suggest the next move using minimax alpha beta. TODO: REPLACE RANDOM_MOVE WITH PROPER GAME LOGIC!!!"""
         start_time = datetime.now()
-        (score, move, avg_depth) = self.random_move()
+        (score, move, avg_depth) = self.get_best_move(self.options.max_depth)
         elapsed_seconds = (datetime.now() - start_time).total_seconds()
         self.stats.total_seconds += elapsed_seconds
         print(f"Heuristic score: {score}")
@@ -613,6 +655,7 @@ class Game:
         except Exception as error:
             print(f"Broker error: {error}")
         return None
+    
     def heuristic_e0(self) -> int:
             player1_score = 0
             player2_score = 0
@@ -648,6 +691,7 @@ class Game:
 
             #calculate the final heuristic by subtracting the two players
             return player1_score - player2_score
+
 ##############################################################################################################
 
 def main():
@@ -657,9 +701,9 @@ def main():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--max_depth', type=int, help='maximum search depth')
     parser.add_argument('--max_time', type=float, help='maximum search time')
-    parser.add_argument('--max_moves', type=float, help='maximum search time')
+    parser.add_argument('--max_moves', type=float, help='maximum moves per game')
     parser.add_argument('--game_type', type=str, default="manual", help='game type: auto|attacker|defender|manual')
-    parser.add_argument('--alpha_beta', type=bool, default="false", help='if a player is an AI, whether alpha-beta is on or off')
+    parser.add_argument('--alpha_beta', type=bool, default=False, help='if a player is an AI, whether alpha-beta is on or off')
     parser.add_argument('--heuristic_type', type=str, help='heuristic type: e0|e1|e2')
     parser.add_argument('--broker', type=str, help='play via a game broker')
     args = parser.parse_args()
@@ -688,7 +732,8 @@ def main():
         logfile.write(f"\tc. Play mode: Attacker (AI) vs Defender (AI)\n")
 
     if not args.game_type == "manual":
-        logfile.write(f"\td. Alpha-Beta is:\n", ("on" if args.alpha_beta else "off"))
+        logfile.write(f"\td. Alpha-Beta is:")
+        logfile.write(f" {'ON' if args.alpha_beta else 'OFF'}\n")
         logfile.write(f"\te. Heuristic: {args.heuristic_type}\n",)
 
     # set up game options
