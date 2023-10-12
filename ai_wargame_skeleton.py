@@ -613,7 +613,40 @@ class Game:
         except Exception as error:
             print(f"Broker error: {error}")
         return None
+    def heuristic_e0(self) -> int:
+            
+            player1_score = 0
+            player2_score = 0
 
+            weights = {
+                'Virus': 3,
+                'Tech': 3,
+                'Firewall': 3, 
+                'Program': 3,
+                'AI': 9999    
+            }
+            HealthScore = {
+                'AI': 9,
+                'Tech': 9,
+                'Virus': 9,
+                'Program': 9,
+                'Firewall': 9
+            }
+            for coord in CoordPair.from_dim(self.options.dim).iter_rectangle():
+                unit = self.get(coord)
+                if unit is not None:
+                    unit_type = unit.type.name
+                    # Modify unit health and enforce the health constraints
+                    unit.mod_health(unit.health)
+                    HealthScore[unit_type] += unit.health
+
+            # Calculate the score for each player based on unit types and health scores
+            for unit_type, weight in weights.items():
+                player1_score += weight * HealthScore[unit_type]
+                player2_score += weight * HealthScore[unit_type]
+
+            #calculate the final heuristic by subtracting the two players
+            return player1_score - player2_score
 ##############################################################################################################
 
 def main():
