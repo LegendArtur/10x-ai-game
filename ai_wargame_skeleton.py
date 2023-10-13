@@ -566,11 +566,14 @@ class Game:
         if depth == 0 or game.is_finished():
             return game.heuristic_e00()
 
+        # print(game.next_player)
         if maximizing_player:
             v = float('-inf')
+            
             for move in game.move_candidates():
                 child_game = game.clone()
                 child_game.perform_move(move)
+                child_game.next_turn()
                 v = max(v, child_game.minimax_alpha_beta(child_game, depth - 1, alpha, beta, False))
                 alpha = max(alpha, v)
                 if beta <= alpha:
@@ -578,9 +581,11 @@ class Game:
             return v
         else:
             v = float('inf')
+            
             for move in game.move_candidates():
                 child_game = game.clone()
                 child_game.perform_move(move)
+                child_game.next_turn()
                 v = min(v, child_game.minimax_alpha_beta(child_game, depth - 1, alpha, beta, True))
                 beta = min(beta, v)
                 if beta <= alpha:
@@ -730,7 +735,7 @@ class Game:
             unitCount[unit.type.name] += 1
         
         for unitType in unitCount:
-            player2_score += weights[unitType] * unitCount[unitType]
+            player1_score += weights[unitType] * unitCount[unitType]
         
         # Reset unitCount
         unitCount = {
