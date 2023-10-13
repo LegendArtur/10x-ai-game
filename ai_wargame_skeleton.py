@@ -22,9 +22,6 @@ weights = {
     'Program': 3,
     'AI': 9999
 }
-
-player1 = Player.Attacker
-
 ##############################################################################################################
 # LOGGING
 
@@ -260,6 +257,7 @@ class Stats:
 class Game:
     """Representation of the game state."""
     board: list[list[Unit | None]] = field(default_factory=list)
+    h_player: Player = Player.Attacker
     next_player: Player = Player.Attacker
     turns_played : int = 0
     options: Options = field(default_factory=Options)
@@ -505,9 +503,9 @@ class Game:
 
     def computer_turn(self) -> CoordPair | None:
         """Computer plays a move."""
+        self.h_player = self.next_player
         mv = self.suggest_move()
         if mv is not None:
-            player1 = self.next_player
             (success,result) = self.perform_move(mv)
             if success:
                 logfile.write(f"Turn #{self.turns_played}: \n")
@@ -603,13 +601,12 @@ class Game:
         max_eval = float('-inf')
 
         for move in self.move_candidates():
-            print(f"Move: {move}")
             child_game = self.clone()
             (success, result) = child_game.perform_move(move)
             if not success:
                 continue
             child_game.next_turn()
-            eval = self.minimax_alpha_beta(child_game, depth, float('-inf'), float('inf'), False)
+            v = self.minimax_alpha_beta(child_game, depth, float('-inf'), float('inf'), False)
 
             if v > max_eval:
                 max_eval = v
@@ -633,8 +630,6 @@ class Game:
         if self.stats.total_seconds > 0:
             print(f"Eval perf.: {total_evals/self.stats.total_seconds/1000:0.1f}k/s")
         print(f"Elapsed time: {elapsed_seconds:0.1f}s")
-
-        print(move)
         return move
 
     def post_move_to_broker(self, move: CoordPair):
@@ -744,7 +739,7 @@ class Game:
         }
 
         # Get the number of each unit type for Player 1 (performing move)
-        for (coord, unit) in self.player_units(player1):
+        for (coord, unit) in self.player_units(self.h_player):
             # Add the unit's count to its corresponding unit type score in unitCount
             unitCount[unit.type.name] += 1
         
@@ -761,7 +756,7 @@ class Game:
         }
 
         # Get the number of each unit type for Player 2 (not performing move)
-        for (coord, unit) in self.player_units(Player.Defender if player1 == Player.Attacker else Player.Attacker):
+        for (coord, unit) in self.player_units(Player.Defender if self.h_player == Player.Attacker else Player.Attacker):
             # Add the unit's count to its corresponding unit type score in unitCount
             unitCount[unit.type.name] += 1
         
