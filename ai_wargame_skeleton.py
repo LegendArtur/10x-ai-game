@@ -657,17 +657,18 @@ class Game:
         return None
     
     def heuristic_e0(self) -> int:
+        # Initialize the scores for both players
         player1_score = 0
         player2_score = 0
 
+        # Define weights for each unit type
         weights = {
             'Virus': 3,
             'Tech': 3,
-            'Firewall': 3, 
+            'Firewall': 3,
             'Program': 3,
-            'AI': 9999    
+            'AI': 9999
         }
-
         HealthScore = {
             'AI': 0,
             'Tech': 0,
@@ -675,43 +676,27 @@ class Game:
             'Program': 0,
             'Firewall': 0
         }
+        for coord in CoordPair.from_dim(self.options.dim).iter_rectangle():
+            unit = self.get(coord)
+            
+            if unit is not None:
+                unit_type = unit.type.name
+                # Add the unit's health to its corresponding unit type score in HealthScore
+                HealthScore[unit_type] += unit.health
+                player = unit.player
+                # Add the unit's health to its player's score
+                if player == Player.Attacker:
+                    player1_score += weights[unit_type] * unit.health
+                else:
+                    player2_score += weights[unit_type] * unit.health
 
-        # Add a variable to store the names of the two players
-        player_name = None
-
-        # Check if the first player is an attacker and the game type allows attacker vs. comp or comp vs. comp
-        if unit.player == Player.Attacker and (Game.options.game_type == GameType.AttackerVsComp or Game.options.game_type == GameType.CompVsComp):
-            for coord in CoordPair.from_dim(self.options.dim).iter_rectangle():
-                unit = self.get(coord)
-                if unit is not None:
-                    unit_type = unit.type.name
-                    # Modify unit health
-                    unit.mod_health(unit.health)
-                    HealthScore[unit_type] += unit.health
-
-        # Check if the first player is a defender and the game type allows defender vs. comp or comp vs. comp
-        elif unit.player == Player.Defender and (Game.options.game_type == GameType.DefenderVsComp or Game.options.game_type == GameType.CompVsComp):
-            # SET THE PLAYER NAMES HERE (E.G., PLAYER1_NAME = "DEFENDER" AND PLAYER2_NAME = "ATTACKER")
-
-            for coord in CoordPair.from_dim(self.options.dim).iter_rectangle():
-                unit = self.get(coord)
-                if unit is not None:
-                    unit_type = unit.type.name
-                    # Modify unit health
-                    unit.mod_health(unit.health)
-                    HealthScore[unit_type] += unit.health
-
-        # Calculate the score for each player based on unit types and health scores
-        for unit_type, weight in weights.items():
-            if unit.player == Player.Attacker:
-                player1_score += weight * HealthScore[unit_type]
-            else:
-                player2_score += weight * HealthScore[unit_type]
-
-        # Calculate the final heuristic score based on the player names
+        # Determine player name
+        player_name = "Attacker" if self.next_player == Player.Attacker else "Defender"
+        
+        # Calculate the final score
         if player_name == "Attacker":
             return player1_score - player2_score
-        elif player_name == "Defender":
+        else:
             return player2_score - player1_score
 ##############################################################################################################
 
