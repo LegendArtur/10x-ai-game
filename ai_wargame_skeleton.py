@@ -23,6 +23,8 @@ weights = {
     'AI': 9999
 }
 
+player1 = Player.Attacker
+
 ##############################################################################################################
 # LOGGING
 
@@ -364,7 +366,6 @@ class Game:
             if self.get(coords.dst) == None:
                 for coord in coords.src.iter_adjacent():
                     if self.get(coord) is not None and self.get(coord).player != self.next_player:
-                        print(f"You are engaged in combat, {coords.src} cannot move!") if not (self.options.game_type == GameType.AttackerVsComp and self.next_player == Player.Attacker or self.options.game_type == GameType.CompVsDefender and game.next_player == Player.Defender) else None
                         return False
                     
         return True
@@ -506,6 +507,7 @@ class Game:
         """Computer plays a move."""
         mv = self.suggest_move()
         if mv is not None:
+            player1 = self.next_player
             (success,result) = self.perform_move(mv)
             if success:
                 logfile.write(f"Turn #{self.turns_played}: \n")
@@ -597,12 +599,13 @@ class Game:
         max_eval = float('-inf')
 
         for move in self.move_candidates():
+            print(f"Move: {move}")
             child_game = self.clone()
             child_game.perform_move(move)
-            eval = self.minimax_alpha_beta(child_game, depth, float('-inf'), float('inf'), False)
+            v = self.minimax_alpha_beta(child_game, depth, float('-inf'), float('inf'), False)
 
-            if eval > max_eval:
-                max_eval = eval
+            if v > max_eval:
+                max_eval = v
                 best_move = move
 
         return max_eval, best_move, 0
@@ -623,6 +626,8 @@ class Game:
         if self.stats.total_seconds > 0:
             print(f"Eval perf.: {total_evals/self.stats.total_seconds/1000:0.1f}k/s")
         print(f"Elapsed time: {elapsed_seconds:0.1f}s")
+
+        print(move)
         return move
 
     def post_move_to_broker(self, move: CoordPair):
@@ -721,6 +726,8 @@ class Game:
         # Initialize the scores for both players
         player1_score = player2_score = 0
 
+        # Determine who 
+
         unitCount = {
             'Virus': 0,
             'Tech': 0,
@@ -730,7 +737,7 @@ class Game:
         }
 
         # Get the number of each unit type for Player 1 (performing move)
-        for (coord, unit) in self.player_units(self.next_player):
+        for (coord, unit) in self.player_units(player1):
             # Add the unit's count to its corresponding unit type score in unitCount
             unitCount[unit.type.name] += 1
         
@@ -747,7 +754,7 @@ class Game:
         }
 
         # Get the number of each unit type for Player 2 (not performing move)
-        for (coord, unit) in self.player_units(self.next_player.next()):
+        for (coord, unit) in self.player_units(Player.Defender if player1 == Player.Attacker else Player.Attacker):
             # Add the unit's count to its corresponding unit type score in unitCount
             unitCount[unit.type.name] += 1
         
@@ -766,8 +773,8 @@ def main():
     parser.add_argument('--max_depth', type=int, help='maximum search depth')
     parser.add_argument('--max_time', type=float, help='maximum search time')
     parser.add_argument('--max_moves', type=float, help='maximum moves per game')
-    parser.add_argument('--game_type', type=str, default="manual", help='game type: auto|attacker|defender|manual')
-    parser.add_argument('--alpha_beta', type=bool, default=False, help='if a player is an AI, whether alpha-beta is on or off')
+    parser.add_argument('--game_type', type=str, default="attacker", help='game type: auto|attacker|defender|manual')
+    parser.add_argument('--alpha_beta', type=bool, help='if a player is an AI, whether alpha-beta is on or off')
     parser.add_argument('--heuristic_type', type=str, help='heuristic type: e0|e1|e2')
     parser.add_argument('--broker', type=str, help='play via a game broker')
     args = parser.parse_args()
