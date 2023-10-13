@@ -564,7 +564,7 @@ class Game:
     
     def minimax_alpha_beta(self, game, depth, alpha, beta, maximizing_player):
         if depth == 0 or game.is_finished():
-            return game.heuristic_e00()
+            return game.heuristic_e2()
 
         # print(game.next_player)
         if maximizing_player:
@@ -680,11 +680,54 @@ class Game:
         except Exception as error:
             print(f"Broker error: {error}")
         return None
-
-    def heuristic_e0(self) -> int:
+    
+    def heuristic_e2(self) -> int:
         # Initialize the scores for both players
-        player1_score = 0
-        player2_score = 0
+        player1_score = player2_score = 0
+
+        # Weights for the heuristic
+        COMBAT_WEIGHT = 100
+        AI_SAFETY_WEIGHT = 200
+        UNIT_BONUS = 50
+
+        # For the current player
+        for (coord, unit) in self.player_units(self.h_player):
+            # Check adjacent cells for enemy units
+            for adjacent_coord in coord.iter_adjacent():
+                adjacent_unit = self.get(adjacent_coord)
+                if adjacent_unit and adjacent_unit.player != self.h_player:
+                    player1_score += COMBAT_WEIGHT  # Bonus for being aggressive
+
+            # Deduct points if AI is too close to the enemy
+            if unit.type.name == 'AI':
+                for enemy_coord, enemy_unit in self.player_units(Player.Defender if self.h_player == Player.Attacker else Player.Attacker):
+                    distance = abs(coord.row - enemy_coord.row) + abs(coord.col - enemy_coord.col)
+                    if distance < 3:  # If enemies are within a close range
+                        player1_score -= AI_SAFETY_WEIGHT / distance  # Deduct more as the enemy gets closer
+
+            player1_score += UNIT_BONUS  # Bonus for unit utilization
+
+        # For the opposing player
+        for (coord, unit) in self.player_units(Player.Defender if self.h_player == Player.Attacker else Player.Attacker):
+            for adjacent_coord in coord.iter_adjacent():
+                adjacent_unit = self.get(adjacent_coord)
+                if adjacent_unit and adjacent_unit.player == self.h_player:
+                    player2_score += COMBAT_WEIGHT  # Opponent gets points for aggression
+
+            if unit.type.name == 'AI':
+                for friendly_coord, friendly_unit in self.player_units(self.h_player):
+                    distance = abs(coord.row - friendly_coord.row) + abs(coord.col - friendly_coord.col)
+                    if distance < 3:
+                        player2_score -= AI_SAFETY_WEIGHT / distance
+
+            player2_score += UNIT_BONUS
+
+        return int(player1_score - player2_score)  # Return the difference as integer
+
+
+    def heuristic_e1(self) -> int:
+        # Initialize the scores for both players
+        player1_score = player2_score = 0
 
         # Define weights for each unit type
         weights = {
@@ -694,37 +737,26 @@ class Game:
             'Program': 3,
             'AI': 9999
         }
-        HealthScore = {
-            'AI': 0,
-            'Tech': 0,
-            'Virus': 0,
-            'Program': 0,
-            'Firewall': 0
-        }
-        for coord in CoordPair.from_dim(self.options.dim).iter_rectangle():
-            unit = self.get(coord)
-            
+
+        for (coord, unit) in self.player_units(self.h_player):
             if unit is not None:
                 unit_type = unit.type.name
                 # Add the unit's health to its corresponding unit type score in HealthScore
-                HealthScore[unit_type] += unit.health
-                player = unit.player
                 # Add the unit's health to its player's score
-                if player == Player.Attacker:
-                    player1_score += weights[unit_type] * unit.health
-                else:
-                    player2_score += weights[unit_type] * unit.health
+                player1_score += weights[unit_type] * unit.health
 
-        # Determine player name
-        player_name = "Attacker" if self.next_player == Player.Attacker else "Defender"
-        
+        for (coord, unit) in self.player_units(Player.Defender if self.h_player == Player.Attacker else Player.Attacker):
+            if unit is not None:
+                unit_type = unit.type.name
+                # Add the unit's health to its corresponding unit type score in HealthScore
+                # Add the unit's health to its player's score
+                player2_score += weights[unit_type] * unit.health
+
         # Calculate the final score
-        if player_name == "Attacker":
-            return player1_score - player2_score
-        else:
-            return player2_score - player1_score
+        return player1_score - player2_score
+
     
-    def heuristic_e00(self) -> int:
+    def heuristic_e0(self) -> int:
         # Initialize the scores for both players
         player1_score = player2_score = 0
 
