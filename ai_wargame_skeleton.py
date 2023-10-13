@@ -498,8 +498,13 @@ class Game:
         if mv is not None:
             (success,result) = self.perform_move(mv)
             if success:
+                logfile.write(f"Turn #{self.turns_played}: \n")
+                logfile.write(f"Computer {self.next_player.name}: ")
                 print(f"Computer {self.next_player.name}: ",end='')
-                print(result)
+                logfile.write(result + "\n")
+                print(result + "\n")
+
+                logfile.write(self.get_board() + "\n")
                 self.next_turn()
         return mv
 
