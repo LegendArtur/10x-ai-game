@@ -669,11 +669,11 @@ class Game:
         }
 
         HealthScore = {
-            'AI': 9,
-            'Tech': 9,
-            'Virus': 9,
-            'Program': 9,
-            'Firewall': 9
+            'AI': 0,
+            'Tech': 0,
+            'Virus': 0,
+            'Program': 0,
+            'Firewall': 0
         }
 
         # Add a variable to store the names of the two players
