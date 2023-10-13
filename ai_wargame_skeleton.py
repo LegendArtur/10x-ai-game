@@ -570,10 +570,12 @@ class Game:
             max_eval = float('-inf')
             for move in game.move_candidates():
                 child_game = game.clone()
-                if move is not self.is_valid_move(move):
-                    print("Invalid move")
                 child_game.perform_move(move)
-                v = child_game.minimax_alpha_beta(child_game, depth - 1, alpha, beta, False)
+                (success, result) = child_game.perform_move(move)
+                if not success:
+                    continue
+                child_game.next_turn()
+                v = self.minimax_alpha_beta(child_game, depth - 1, alpha, beta, False)
                 max_eval = max(max_eval, v)
                 alpha = max(alpha, v)
                 if beta <= alpha:
@@ -584,7 +586,11 @@ class Game:
             for move in game.move_candidates():
                 child_game = game.clone()
                 child_game.perform_move(move)
-                v = child_game.minimax_alpha_beta(child_game, depth - 1, alpha, beta, True)
+                (success, result) = child_game.perform_move(move)
+                if not success:
+                    continue
+                child_game.next_turn()
+                v = self.minimax_alpha_beta(child_game, depth - 1, alpha, beta, True)
                 min_eval = min(min_eval, v)
                 beta = min(beta, v)
                 if beta <= alpha:
@@ -596,8 +602,13 @@ class Game:
         max_eval = float('-inf')
 
         for move in self.move_candidates():
+            print(move)
+        for move in self.move_candidates():
             child_game = self.clone()
-            child_game.perform_move(move)
+            (success, result) = child_game.perform_move(move)
+            if not success:
+                continue
+            child_game.next_turn()
             eval = self.minimax_alpha_beta(child_game, depth, float('-inf'), float('inf'), False)
 
             if eval > max_eval:
