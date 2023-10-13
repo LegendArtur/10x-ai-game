@@ -570,8 +570,6 @@ class Game:
             v = float('-inf')
             for move in game.move_candidates():
                 child_game = game.clone()
-                if move is not game.is_valid_move(move):
-                    print("Invalid move")
                 child_game.perform_move(move)
                 v = max(v, child_game.minimax_alpha_beta(child_game, depth - 1, alpha, beta, False))
                 alpha = max(alpha, v)
