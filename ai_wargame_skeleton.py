@@ -567,29 +567,27 @@ class Game:
             return game.heuristic_e00()
 
         if maximizing_player:
-            max_eval = float('-inf')
+            v = float('-inf')
             for move in game.move_candidates():
                 child_game = game.clone()
-                if move is not self.is_valid_move(move):
+                if move is not game.is_valid_move(move):
                     print("Invalid move")
                 child_game.perform_move(move)
-                v = child_game.minimax_alpha_beta(child_game, depth - 1, alpha, beta, False)
-                max_eval = max(max_eval, v)
+                v = max(v, child_game.minimax_alpha_beta(child_game, depth - 1, alpha, beta, False))
                 alpha = max(alpha, v)
                 if beta <= alpha:
                     break  # Beta cut-off
-            return max_eval
+            return v
         else:
-            min_eval = float('inf')
+            v = float('inf')
             for move in game.move_candidates():
                 child_game = game.clone()
                 child_game.perform_move(move)
-                v = child_game.minimax_alpha_beta(child_game, depth - 1, alpha, beta, True)
-                min_eval = min(min_eval, v)
+                v = min(v, child_game.minimax_alpha_beta(child_game, depth - 1, alpha, beta, True))
                 beta = min(beta, v)
                 if beta <= alpha:
                     break  # Alpha cut-off
-            return min_eval
+            return v
 
     def get_best_move(self, depth):
         best_move = None
