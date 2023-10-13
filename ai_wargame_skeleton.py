@@ -14,6 +14,15 @@ import os
 MAX_HEURISTIC_SCORE = 2000000000
 MIN_HEURISTIC_SCORE = -2000000000
 
+# Define weights for each unit type
+weights = {
+    'Virus': 3,
+    'Tech': 3,
+    'Firewall': 3,
+    'Program': 3,
+    'AI': 9999
+}
+
 ##############################################################################################################
 # LOGGING
 
@@ -463,6 +472,7 @@ class Game:
     
     def human_turn(self):
         """Human player plays a move (or get via broker)."""
+        print(self.next_player)
         if self.options.broker is not None:
             print("Getting next move with auto-retry from game broker...")
             while True:
@@ -554,16 +564,18 @@ class Game:
     
     def minimax_alpha_beta(self, game, depth, alpha, beta, maximizing_player):
         if depth == 0 or game.is_finished():
-            return game.heuristic_e0()
+            return game.heuristic_e00()
 
         if maximizing_player:
             max_eval = float('-inf')
             for move in game.move_candidates():
                 child_game = game.clone()
+                if move is not self.is_valid_move(move):
+                    print("Invalid move")
                 child_game.perform_move(move)
-                eval = game.minimax_alpha_beta(child_game, depth - 1, alpha, beta, False)
-                max_eval = max(max_eval, eval)
-                alpha = max(alpha, eval)
+                v = child_game.minimax_alpha_beta(child_game, depth - 1, alpha, beta, False)
+                max_eval = max(max_eval, v)
+                alpha = max(alpha, v)
                 if beta <= alpha:
                     break  # Beta cut-off
             return max_eval
@@ -572,9 +584,9 @@ class Game:
             for move in game.move_candidates():
                 child_game = game.clone()
                 child_game.perform_move(move)
-                eval = game.minimax_alpha_beta(child_game, depth - 1, alpha, beta, True)
-                min_eval = min(min_eval, eval)
-                beta = min(beta, eval)
+                v = child_game.minimax_alpha_beta(child_game, depth - 1, alpha, beta, True)
+                min_eval = min(min_eval, v)
+                beta = min(beta, v)
                 if beta <= alpha:
                     break  # Alpha cut-off
             return min_eval
@@ -660,7 +672,7 @@ class Game:
         except Exception as error:
             print(f"Broker error: {error}")
         return None
-    
+
     def heuristic_e0(self) -> int:
         # Initialize the scores for both players
         player1_score = 0
@@ -703,6 +715,46 @@ class Game:
             return player1_score - player2_score
         else:
             return player2_score - player1_score
+    
+    def heuristic_e00(self) -> int:
+        # Initialize the scores for both players
+        player1_score = player2_score = 0
+
+        unitCount = {
+            'Virus': 0,
+            'Tech': 0,
+            'Firewall': 0,
+            'Program': 0,
+            'AI': 0
+        }
+
+        # Get the number of each unit type for Player 1 (performing move)
+        for (coord, unit) in self.player_units(self.next_player):
+            # Add the unit's count to its corresponding unit type score in unitCount
+            unitCount[unit.type.name] += 1
+        
+        for unitType in unitCount:
+            player2_score += weights[unitType] * unitCount[unitType]
+        
+        # Reset unitCount
+        unitCount = {
+            'Virus': 0,
+            'Tech': 0,
+            'Firewall': 0,
+            'Program': 0,
+            'AI': 0
+        }
+
+        # Get the number of each unit type for Player 2 (not performing move)
+        for (coord, unit) in self.player_units(self.next_player.next()):
+            # Add the unit's count to its corresponding unit type score in unitCount
+            unitCount[unit.type.name] += 1
+        
+        for unitType in unitCount:
+            player2_score += weights[unitType] * unitCount[unitType]
+
+        return player1_score - player2_score
+
 ##############################################################################################################
 
 def main():
