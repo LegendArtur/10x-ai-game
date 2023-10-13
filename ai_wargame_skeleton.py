@@ -364,7 +364,7 @@ class Game:
             if self.get(coords.dst) == None:
                 for coord in coords.src.iter_adjacent():
                     if self.get(coord) is not None and self.get(coord).player != self.next_player:
-                        print(f"You are engaged in combat, {coords.src} cannot move!")
+                        print(f"You are engaged in combat, {coords.src} cannot move!") if not (self.options.game_type == GameType.AttackerVsComp and self.next_player == Player.Attacker or self.options.game_type == GameType.CompVsDefender and game.next_player == Player.Defender) else None
                         return False
                     
         return True
