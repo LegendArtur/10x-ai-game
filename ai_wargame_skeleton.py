@@ -9,6 +9,7 @@ from typing import Tuple, TypeVar, Type, Iterable, ClassVar
 import random
 import requests
 import os
+import threading
 
 # maximum and minimum values for our heuristic scores (usually represents an end of game condition)
 MAX_HEURISTIC_SCORE = 2000000000
@@ -22,6 +23,10 @@ weights = {
     'Program': 3,
     'AI': 9999
 }
+
+class TimeLimitExceededException(Exception):
+    pass
+
 ##############################################################################################################
 # LOGGING
 
@@ -242,6 +247,7 @@ class Options:
     max_turns : int | None = 100
     randomize_moves : bool = True
     broker : str | None = None
+    heuristic_type: str | None = "e0"
 
 ##############################################################################################################
 
@@ -560,10 +566,19 @@ class Game:
             return (0, move_candidates[0], 1)
         else:
             return (0, None, 0)
-    
+        
+
     def minimax_alpha_beta(self, game, depth, alpha, beta, maximizing_player):
         if depth == 0 or game.is_finished():
-            return game.heuristic_e2()
+            if self.options.heuristic_type == "e0":
+                return game.heuristic_e0(), depth
+            if self.options.heuristic_type == "e1":
+                return game.heuristic_e1(), depth
+            if self.options.heuristic_type == "e2":
+                return game.heuristic_e2(), depth
+
+        avg_depth = depth
+        total_nodes = 1
 
         if maximizing_player:
             v = float('-inf')
@@ -574,11 +589,14 @@ class Game:
                 if not success:
                     continue
                 child_game.next_turn()
-                v = max(v, self.minimax_alpha_beta(child_game, depth - 1, alpha, beta, False))
+                eval_value, node_depth = self.minimax_alpha_beta(child_game, depth - 1, alpha, beta, False)
+                avg_depth += node_depth
+                total_nodes += 1
+                v = max(v, eval_value)
                 alpha = max(alpha, v)
                 if beta <= alpha:
                     break  # Beta cut-off
-            return v
+            return v, avg_depth / total_nodes
         else:
             v = float('inf')
             
@@ -588,34 +606,66 @@ class Game:
                 if not success:
                     continue
                 child_game.next_turn()
-                v = min(v, self.minimax_alpha_beta(child_game, depth - 1, alpha, beta, True))
+                eval_value, node_depth = self.minimax_alpha_beta(child_game, depth - 1, alpha, beta, True)
+                avg_depth += node_depth
+                total_nodes += 1
+                v = min(v, eval_value)
                 beta = min(beta, v)
                 if beta <= alpha:
                     break  # Alpha cut-off
-            return v
+            return v, avg_depth / total_nodes
 
     def get_best_move(self, depth):
         best_move = None
         max_eval = float('-inf')
+        avg_depth = 0
 
-        for move in self.move_candidates():
-            child_game = self.clone()
-            (success, result) = child_game.perform_move(move)
-            if not success:
-                continue
-            child_game.next_turn()
-            v = self.minimax_alpha_beta(child_game, depth, float('-inf'), float('inf'), False)
+        stop_search = threading.Event()  # Event to signal the thread to stop
 
-            if v > max_eval:
-                max_eval = v
-                best_move = move
+        def worker():
+            nonlocal best_move, max_eval, avg_depth
+            total_depth = 0
+            total_nodes = 0
 
-        return max_eval, best_move, 0
+            for move in self.move_candidates():
+                # Check if we should stop searching due to time limit
+                if stop_search.is_set():
+                    # Can remove this output in the future, but just to show it does respect time limit
+                    print(f"Time limit of {self.options.max_time} seconds reached! Returning current values.")
+                    break
+
+                child_game = self.clone()
+                (success, result) = child_game.perform_move(move)
+                if not success:
+                    continue
+                child_game.next_turn()
+                v, node_depth = self.minimax_alpha_beta(child_game, depth, float('-inf'), float('inf'), False)
+                total_depth += node_depth
+                total_nodes += 1
+
+                if v > max_eval:
+                    max_eval = v
+                    best_move = move
+
+            avg_depth = total_depth / total_nodes if total_nodes else 0
+
+        thread = threading.Thread(target=worker)
+        thread.start()
+        thread.join(timeout=(self.options.max_time - 1)) # - 1 second for time for the rest of the turn logic to be performed
+
+        if thread.is_alive():
+            stop_search.set()  # Signal the thread to stop searching
+            thread.join()  # Wait for the thread to actually finish
+
+        return max_eval, best_move, avg_depth
     
     def suggest_move(self) -> CoordPair | None:
         """Suggest the next move using minimax alpha beta. TODO: REPLACE RANDOM_MOVE WITH PROPER GAME LOGIC!!!"""
         start_time = datetime.now()
-        (score, move, avg_depth) = self.get_best_move(self.options.max_depth)
+        try:
+            (score, move, avg_depth) = self.get_best_move(self.options.max_depth)
+        except TimeLimitExceededException:
+            pass
         elapsed_seconds = (datetime.now() - start_time).total_seconds()
         self.stats.total_seconds += elapsed_seconds
         print(f"Heuristic score: {score}")
@@ -687,7 +737,7 @@ class Game:
         LOSS_SCORE = -999999  # A very high negative score for losing
         MOVE_TOWARDS_AI_WEIGHT = 1000
         ATTACK_WEIGHT = 200
-        HEALTH_FACTOR = 100  # Adjust as needed to increase/decrease the influence of health
+        HEALTH_FACTOR = 50  # Adjust as needed to increase/decrease the influence of health
         
         ai_location_opponent = None
         ai_location_self = None
@@ -836,10 +886,10 @@ def main():
     parser.add_argument('--broker', type=str, help='play via a game broker')
     args = parser.parse_args()
 
-    logfileName = f"gameTrace-{args.alpha_beta}-{args.max_time}-{args.max_moves}.txt"
+    logfileName = f"gameTrace-{args.alpha_beta}-{args.max_time}-{int(args.max_moves)}.txt"
     counter = 0
     while os.path.exists(logfileName):
-        logfileName = f"gameTrace-{args.alpha_beta}-{args.max_time}-{args.max_moves}-{counter}.txt"
+        logfileName = f"gameTrace-{args.alpha_beta}-{args.max_time}-{int(args.max_moves)}-{counter}.txt"
         counter += 1
 
     logfile.write(f"1. The game parameters:\n\ta. Timeout (in s): {args.max_time}\n\tb. Max number of turns: {args.max_moves}\n",)
@@ -874,6 +924,12 @@ def main():
         options.max_time = args.max_time
     if args.broker is not None:
         options.broker = args.broker
+    if args.heuristic_type is not None:
+        options.heuristic_type = args.heuristic_type
+    if args.max_moves is not None:
+        options.max_turns = int(args.max_moves)
+    if args.alpha_beta is not None:
+        options.alpha_beta = args.alpha_beta
 
     # create a new game
     game = Game(options=options)
@@ -886,6 +942,12 @@ def main():
             print()
             print(game)
             winner = game.has_winner()
+            if game.turns_played == game.options.max_turns:
+                print(f"Tie, max number of turns played! {game.turns_played}/{game.options.max_turns}")
+                logfile.write(f"Tie, max number of turns played! {game.turns_played}/{game.options.max_turns}")
+                logfile.close()
+                os.rename('templog.txt', logfileName)
+                break
             if winner is not None:
                 print(f"{winner.name} wins in {game.turns_played} turns!")
                 logfile.write(f"{winner.name} wins in {game.turns_played} turns!\n")
