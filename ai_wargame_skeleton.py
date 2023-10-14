@@ -471,7 +471,6 @@ class Game:
     
     def human_turn(self):
         """Human player plays a move (or get via broker)."""
-        print(self.next_player)
         if self.options.broker is not None:
             print("Getting next move with auto-retry from game broker...")
             while True:
@@ -566,7 +565,6 @@ class Game:
         if depth == 0 or game.is_finished():
             return game.heuristic_e2()
 
-        # print(game.next_player)
         if maximizing_player:
             v = float('-inf')
             
@@ -682,47 +680,72 @@ class Game:
         return None
     
     def heuristic_e2(self) -> int:
-        # Initialize the scores for both players
-        player1_score = player2_score = 0
+        player1_score = 0
+        player2_score = 0
+        
+        WIN_SCORE = 999999  # A very high score for winning
+        LOSS_SCORE = -999999  # A very high negative score for losing
+        MOVE_TOWARDS_AI_WEIGHT = 1000
+        ATTACK_WEIGHT = 200
+        HEALTH_FACTOR = 100  # Adjust as needed to increase/decrease the influence of health
+        
+        ai_location_opponent = None
+        ai_location_self = None
+        
+        # Check opponent's AI
+        for (coord, unit) in self.player_units(Player.Defender if self.h_player == Player.Attacker else Player.Attacker):
+            if unit.type.name == "AI":
+                ai_location_opponent = coord
+                break
+        
+        # Check own AI
+        for (coord, unit) in self.player_units(self.h_player):
+            if unit.type.name == "AI":
+                ai_location_self = coord
+                break
 
-        # Weights for the heuristic
-        COMBAT_WEIGHT = 100
-        AI_SAFETY_WEIGHT = 200
-        UNIT_BONUS = 50
+        # If the opponent's AI is not found, it means the current player (AI) has won
+        if not ai_location_opponent:
+            return WIN_SCORE
+        
+        # If the AI's own unit is not on the board, it means the AI has lost
+        if not ai_location_self:
+            return LOSS_SCORE
 
         # For the current player
         for (coord, unit) in self.player_units(self.h_player):
-            # Check adjacent cells for enemy units
+            # Incentive to move closer to the opponent's AI
+            distance_to_ai = abs(coord.row - ai_location_opponent.row) + abs(coord.col - ai_location_opponent.col)
+            if distance_to_ai == 0:
+                player1_score += MOVE_TOWARDS_AI_WEIGHT
+            else:
+                player1_score += MOVE_TOWARDS_AI_WEIGHT / distance_to_ai
+
+            # Check adjacent cells for enemy units to attack
             for adjacent_coord in coord.iter_adjacent():
                 adjacent_unit = self.get(adjacent_coord)
                 if adjacent_unit and adjacent_unit.player != self.h_player:
-                    player1_score += COMBAT_WEIGHT  # Bonus for being aggressive
+                    player1_score += ATTACK_WEIGHT
 
-            # Deduct points if AI is too close to the enemy
-            if unit.type.name == 'AI':
-                for enemy_coord, enemy_unit in self.player_units(Player.Defender if self.h_player == Player.Attacker else Player.Attacker):
-                    distance = abs(coord.row - enemy_coord.row) + abs(coord.col - enemy_coord.col)
-                    if distance < 3:  # If enemies are within a close range
-                        player1_score -= AI_SAFETY_WEIGHT / distance  # Deduct more as the enemy gets closer
+            # Health consideration
+            player1_score += unit.health * HEALTH_FACTOR
 
-            player1_score += UNIT_BONUS  # Bonus for unit utilization
-
-        # For the opposing player
+        # For the opposing player (similar considerations but for the opponent)
         for (coord, unit) in self.player_units(Player.Defender if self.h_player == Player.Attacker else Player.Attacker):
+            distance_to_ai = abs(coord.row - ai_location_self.row) + abs(coord.col - ai_location_self.col)
+            if distance_to_ai == 0:
+                player2_score += MOVE_TOWARDS_AI_WEIGHT  # Give maximum score if the unit is already on the AI's position
+            else:
+                player2_score += MOVE_TOWARDS_AI_WEIGHT / distance_to_ai
+
             for adjacent_coord in coord.iter_adjacent():
                 adjacent_unit = self.get(adjacent_coord)
                 if adjacent_unit and adjacent_unit.player == self.h_player:
-                    player2_score += COMBAT_WEIGHT  # Opponent gets points for aggression
+                    player2_score += ATTACK_WEIGHT
 
-            if unit.type.name == 'AI':
-                for friendly_coord, friendly_unit in self.player_units(self.h_player):
-                    distance = abs(coord.row - friendly_coord.row) + abs(coord.col - friendly_coord.col)
-                    if distance < 3:
-                        player2_score -= AI_SAFETY_WEIGHT / distance
+            player2_score += unit.health * HEALTH_FACTOR
 
-            player2_score += UNIT_BONUS
-
-        return int(player1_score - player2_score)  # Return the difference as integer
+        return int(player1_score - player2_score)
 
 
     def heuristic_e1(self) -> int:
