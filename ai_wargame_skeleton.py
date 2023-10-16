@@ -737,7 +737,8 @@ class Game:
         LOSS_SCORE = -999999  # A very high negative score for losing
         MOVE_TOWARDS_AI_WEIGHT = 1000
         ATTACK_WEIGHT = 200
-        HEALTH_FACTOR = 50  # Adjust as needed to increase/decrease the influence of health
+        HEALTH_FACTOR = 100  # Adjust as needed to increase/decrease the influence of health
+        AI_HEALTH_WEIGHT = 2000 # High factor for AI health so that units are motivated to go for AI.
         
         ai_location_opponent = None
         ai_location_self = None
@@ -746,12 +747,14 @@ class Game:
         for (coord, unit) in self.player_units(Player.Defender if self.h_player == Player.Attacker else Player.Attacker):
             if unit.type.name == "AI":
                 ai_location_opponent = coord
+                player2_score += unit.health * AI_HEALTH_WEIGHT  
                 break
         
         # Check own AI
         for (coord, unit) in self.player_units(self.h_player):
             if unit.type.name == "AI":
                 ai_location_self = coord
+                player1_score += unit.health * AI_HEALTH_WEIGHT
                 break
 
         # If the opponent's AI is not found, it means the current player (AI) has won
