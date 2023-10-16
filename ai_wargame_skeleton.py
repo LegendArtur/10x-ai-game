@@ -676,6 +676,8 @@ class Game:
         total_evals = sum(self.stats.evaluations_per_depth.values())
         print(f"Cumulative evaluations: {total_evals}")
         print(f"Evals per depth: ",end='')
+        #Average branching factor 
+
         for k in sorted(self.stats.evaluations_per_depth.keys()):
             print(f"{k}:{self.stats.evaluations_per_depth[k]} ",end='')
         print()
