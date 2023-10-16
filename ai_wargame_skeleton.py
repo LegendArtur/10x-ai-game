@@ -571,10 +571,13 @@ class Game:
     def minimax_alpha_beta(self, game, depth, alpha, beta, maximizing_player):
         if depth == 0 or game.is_finished():
             if self.options.heuristic_type == "e0":
+                self.stats.evaluations_per_depth[self.options.max_depth - depth] = self.stats.evaluations_per_depth.get(self.options.max_depth - depth, 0) + 1
                 return game.heuristic_e0(), depth
             if self.options.heuristic_type == "e1":
+                self.stats.evaluations_per_depth[self.options.max_depth - depth] = self.stats.evaluations_per_depth.get(self.options.max_depth - depth, 0) + 1
                 return game.heuristic_e1(), depth
             if self.options.heuristic_type == "e2":
+                self.stats.evaluations_per_depth[self.options.max_depth - depth] = self.stats.evaluations_per_depth.get(self.options.max_depth - depth, 0) + 1
                 return game.heuristic_e2(), depth
 
         avg_depth = depth
@@ -670,11 +673,16 @@ class Game:
         self.stats.total_seconds += elapsed_seconds
         print(f"Heuristic score: {score}")
         print(f"Average recursive depth: {avg_depth:0.1f}")
+        total_evals = sum(self.stats.evaluations_per_depth.values())
+        print(f"Cumulative evaluations: {total_evals}")
         print(f"Evals per depth: ",end='')
         for k in sorted(self.stats.evaluations_per_depth.keys()):
             print(f"{k}:{self.stats.evaluations_per_depth[k]} ",end='')
         print()
-        total_evals = sum(self.stats.evaluations_per_depth.values())
+        print(f"Cumulative evals per depth: ",end='')
+        for k in sorted(self.stats.evaluations_per_depth.keys()):
+            print(f"{k}:{(self.stats.evaluations_per_depth[k]/total_evals)*100:0.1f}% ",end='')
+        print()
         if self.stats.total_seconds > 0:
             print(f"Eval perf.: {total_evals/self.stats.total_seconds/1000:0.1f}k/s")
         print(f"Elapsed time: {elapsed_seconds:0.1f}s")
