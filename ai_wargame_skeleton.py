@@ -661,6 +661,10 @@ class Game:
         print(f"Heuristic score: {score}")
         total_evals = sum(self.stats.evaluations_per_depth.values())
         print(f"Cumulative evaluations: {total_evals}")
+        #Average branching factor 
+        total_depths = len(self.stats.evaluations_per_depth)
+        average_branching_factor = total_evals / total_depths if total_depths else 0
+        print(f"Average branching factor: {average_branching_factor:0.1f}")
         print(f"Evals per depth: ",end='')
         for k in sorted(self.stats.evaluations_per_depth.keys()):
             print(f"{k}:{self.stats.evaluations_per_depth[k]} ",end='')
