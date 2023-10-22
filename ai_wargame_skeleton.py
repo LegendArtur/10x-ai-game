@@ -580,9 +580,6 @@ class Game:
                 self.stats.evaluations_per_depth[self.options.max_depth - depth] = self.stats.evaluations_per_depth.get(self.options.max_depth - depth, 0) + 1
                 return game.heuristic_e2(), depth
 
-        avg_depth = depth
-        total_nodes = 1
-
         if maximizing_player:
             v = float('-inf')
             
@@ -592,14 +589,12 @@ class Game:
                 if not success:
                     continue
                 child_game.next_turn()
-                eval_value, node_depth = self.minimax_alpha_beta(child_game, depth - 1, alpha, beta, False)
-                avg_depth += node_depth
-                total_nodes += 1
+                eval_value = self.minimax_alpha_beta(child_game, depth - 1, alpha, beta, False)
                 v = max(v, eval_value)
                 alpha = max(alpha, v)
                 if beta <= alpha:
                     break  # Beta cut-off
-            return v, avg_depth / total_nodes
+            return v
         else:
             v = float('inf')
             
@@ -609,26 +604,21 @@ class Game:
                 if not success:
                     continue
                 child_game.next_turn()
-                eval_value, node_depth = self.minimax_alpha_beta(child_game, depth - 1, alpha, beta, True)
-                avg_depth += node_depth
-                total_nodes += 1
+                eval_value = self.minimax_alpha_beta(child_game, depth - 1, alpha, beta, True)
                 v = min(v, eval_value)
                 beta = min(beta, v)
                 if beta <= alpha:
                     break  # Alpha cut-off
-            return v, avg_depth / total_nodes
+            return v
 
     def get_best_move(self, depth):
         best_move = None
         max_eval = float('-inf')
-        avg_depth = 0
 
         stop_search = threading.Event()  # Event to signal the thread to stop
 
         def worker():
-            nonlocal best_move, max_eval, avg_depth
-            total_depth = 0
-            total_nodes = 0
+            nonlocal best_move, max_eval
 
             for move in self.move_candidates():
                 # Check if we should stop searching due to time limit
@@ -642,15 +632,12 @@ class Game:
                 if not success:
                     continue
                 child_game.next_turn()
-                v, node_depth = self.minimax_alpha_beta(child_game, depth, float('-inf'), float('inf'), False)
-                total_depth += node_depth
-                total_nodes += 1
+                v = self.minimax_alpha_beta(child_game, depth - 1, float('-inf'), float('inf'), False)
 
                 if v > max_eval:
                     max_eval = v
                     best_move = move
 
-            avg_depth = total_depth / total_nodes if total_nodes else 0
 
         thread = threading.Thread(target=worker)
         thread.start()
@@ -660,19 +647,18 @@ class Game:
             stop_search.set()  # Signal the thread to stop searching
             thread.join()  # Wait for the thread to actually finish
 
-        return max_eval, best_move, avg_depth
+        return max_eval, best_move
     
     def suggest_move(self) -> CoordPair | None:
         """Suggest the next move using minimax alpha beta. TODO: REPLACE RANDOM_MOVE WITH PROPER GAME LOGIC!!!"""
         start_time = datetime.now()
         try:
-            (score, move, avg_depth) = self.get_best_move(self.options.max_depth)
+            (score, move) = self.get_best_move(self.options.max_depth)
         except TimeLimitExceededException:
             pass
         elapsed_seconds = (datetime.now() - start_time).total_seconds()
         self.stats.total_seconds += elapsed_seconds
         print(f"Heuristic score: {score}")
-        print(f"Average recursive depth: {avg_depth:0.1f}")
         total_evals = sum(self.stats.evaluations_per_depth.values())
         print(f"Cumulative evaluations: {total_evals}")
         print(f"Evals per depth: ",end='')
@@ -743,8 +729,7 @@ class Game:
         
         WIN_SCORE = 999999  # A very high score for winning
         LOSS_SCORE = -999999  # A very high negative score for losing
-        MOVE_TOWARDS_AI_WEIGHT = 1000
-        ATTACK_WEIGHT = 200
+        MOVE_TOWARDS_AI_WEIGHT = 6000
         HEALTH_FACTOR = 100  # Adjust as needed to increase/decrease the influence of health
         AI_HEALTH_WEIGHT = 2000 # High factor for AI health so that units are motivated to go for AI.
         
@@ -782,14 +767,9 @@ class Game:
             else:
                 player1_score += MOVE_TOWARDS_AI_WEIGHT / distance_to_ai
 
-            # Check adjacent cells for enemy units to attack
-            for adjacent_coord in coord.iter_adjacent():
-                adjacent_unit = self.get(adjacent_coord)
-                if adjacent_unit and adjacent_unit.player != self.h_player:
-                    player1_score += ATTACK_WEIGHT
-
             # Health consideration
-            player1_score += unit.health * HEALTH_FACTOR
+            if unit.type.name != "AI":
+                player1_score += unit.health * HEALTH_FACTOR
 
         # For the opposing player (similar considerations but for the opponent)
         for (coord, unit) in self.player_units(Player.Defender if self.h_player == Player.Attacker else Player.Attacker):
@@ -799,12 +779,8 @@ class Game:
             else:
                 player2_score += MOVE_TOWARDS_AI_WEIGHT / distance_to_ai
 
-            for adjacent_coord in coord.iter_adjacent():
-                adjacent_unit = self.get(adjacent_coord)
-                if adjacent_unit and adjacent_unit.player == self.h_player:
-                    player2_score += ATTACK_WEIGHT
-
-            player2_score += unit.health * HEALTH_FACTOR
+            if unit.type.name != "AI":
+                player2_score += unit.health * HEALTH_FACTOR
 
         return int(player1_score - player2_score)
 
