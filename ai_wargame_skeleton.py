@@ -568,18 +568,21 @@ class Game:
             return (0, None, 0)
         
 
-    def minimax_alpha_beta(self, game, depth, alpha, beta, maximizing_player):
+    def minimax_alpha_beta(self, game, depth, alpha, beta, maximizing_player, non_root_nodes=0, non_leaf_nodes=0):
         if depth == 0 or game.is_finished():
             if self.options.heuristic_type == "e0":
                 self.stats.evaluations_per_depth[self.options.max_depth - depth] = self.stats.evaluations_per_depth.get(self.options.max_depth - depth, 0) + 1
-                return game.heuristic_e0(), depth
+                return game.heuristic_e0(), depth, non_root_nodes, non_leaf_nodes
             if self.options.heuristic_type == "e1":
                 self.stats.evaluations_per_depth[self.options.max_depth - depth] = self.stats.evaluations_per_depth.get(self.options.max_depth - depth, 0) + 1
-                return game.heuristic_e1(), depth
+                return game.heuristic_e1(), depth, non_root_nodes, non_leaf_nodes
             if self.options.heuristic_type == "e2":
                 self.stats.evaluations_per_depth[self.options.max_depth - depth] = self.stats.evaluations_per_depth.get(self.options.max_depth - depth, 0) + 1
-                return game.heuristic_e2(), depth
-
+                return game.heuristic_e2(), depth, non_root_nodes, non_leaf_nodes
+        avg_depth = depth
+        total_nodes = 1
+        non_leaf_nodes += 1
+        
         if maximizing_player:
             v = float('-inf')
             
@@ -589,12 +592,17 @@ class Game:
                 if not success:
                     continue
                 child_game.next_turn()
-                eval_value = self.minimax_alpha_beta(child_game, depth - 1, alpha, beta, False)
+                eval_value, node_depth, child_non_root_nodes, child_non_leaf_nodes = self.minimax_alpha_beta(child_game, depth - 1, alpha, beta, False, non_root_nodes + 1, non_leaf_nodes)
+                # Update non-root and non-leaf node counts
+                non_root_nodes = child_non_root_nodes
+                non_leaf_nodes = child_non_leaf_nodes
+                avg_depth += node_depth
+                total_nodes += 1                
                 v = max(v, eval_value)
                 alpha = max(alpha, v)
                 if beta <= alpha:
                     break  # Beta cut-off
-            return v
+            return v, non_root_nodes, non_leaf_nodes
         else:
             v = float('inf')
             
@@ -604,22 +612,33 @@ class Game:
                 if not success:
                     continue
                 child_game.next_turn()
-                eval_value = self.minimax_alpha_beta(child_game, depth - 1, alpha, beta, True)
+                eval_value, node_depth, child_non_root_nodes, child_non_leaf_nodes = self.minimax_alpha_beta(child_game, depth - 1, alpha, beta, True, non_root_nodes + 1, non_leaf_nodes)
+                # Update non-root and non-leaf node counts
+                non_root_nodes = child_non_root_nodes
+                non_leaf_nodes = child_non_leaf_nodes
+
+                avg_depth += node_depth
+                total_nodes += 1
                 v = min(v, eval_value)
                 beta = min(beta, v)
                 if beta <= alpha:
                     break  # Alpha cut-off
-            return v
+            return v,non_root_nodes, non_leaf_nodes
 
     def get_best_move(self, depth):
         best_move = None
         max_eval = float('-inf')
+        non_root_nodes = 0
+        non_leaf_nodes = 0
+        avg_depth = 0
 
         stop_search = threading.Event()  # Event to signal the thread to stop
 
         def worker():
-            nonlocal best_move, max_eval
-
+            nonlocal best_move, max_eval, avg_depth, non_root_nodes, non_leaf_nodes
+            total_depth = 0
+            total_nodes = 0
+            
             for move in self.move_candidates():
                 # Check if we should stop searching due to time limit
                 if stop_search.is_set():
@@ -633,12 +652,16 @@ class Game:
                     continue
                 child_game.next_turn()
                 v = self.minimax_alpha_beta(child_game, depth - 1, float('-inf'), float('inf'), False)
+                # Update non-root and non-leaf node counts
+                non_root_nodes = child_non_root_nodes
+                non_leaf_nodes = child_non_leaf_nodes
+                total_depth += avg_depth  # Update the total depth
+                total_nodes += 1
 
                 if v > max_eval:
                     max_eval = v
                     best_move = move
-
-
+            avg_depth = total_depth / total_nodes if total_nodes else 0
         thread = threading.Thread(target=worker)
         thread.start()
         thread.join(timeout=(self.options.max_time - 1)) # - 1 second for time for the rest of the turn logic to be performed
@@ -647,13 +670,14 @@ class Game:
             stop_search.set()  # Signal the thread to stop searching
             thread.join()  # Wait for the thread to actually finish
 
-        return max_eval, best_move
-    
+        return max_eval, best_move, avg_depth, non_root_nodes, non_leaf_nodes    
+
     def suggest_move(self) -> CoordPair | None:
         """Suggest the next move using minimax alpha beta. TODO: REPLACE RANDOM_MOVE WITH PROPER GAME LOGIC!!!"""
         start_time = datetime.now()
+        
         try:
-            (score, move) = self.get_best_move(self.options.max_depth)
+            (score, move, avg_depth, non_root_nodes, non_leaf_nodes) = self.get_best_move(self.options.max_depth)
         except TimeLimitExceededException:
             pass
         elapsed_seconds = (datetime.now() - start_time).total_seconds()
@@ -661,9 +685,8 @@ class Game:
         print(f"Heuristic score: {score}")
         total_evals = sum(self.stats.evaluations_per_depth.values())
         print(f"Cumulative evaluations: {total_evals}")
-        #Average branching factor 
-        total_depths = len(self.stats.evaluations_per_depth)
-        average_branching_factor = total_evals / total_depths if total_depths else 0
+        print(f"Non-root nodes: {non_root_nodes}")
+        print(f"Non-leaf nodes: {non_leaf_nodes}")
         print(f"Average branching factor: {average_branching_factor:0.1f}")
         print(f"Evals per depth: ",end='')
         for k in sorted(self.stats.evaluations_per_depth.keys()):
