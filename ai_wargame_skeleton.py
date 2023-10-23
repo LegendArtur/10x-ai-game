@@ -256,6 +256,8 @@ class Stats:
     """Representation of the global game statistics."""
     evaluations_per_depth : dict[int,int] = field(default_factory=dict)
     total_seconds: float = 0.0
+    non_root_nodes: int = 0
+    non_leaf_nodes: int = 0
 
 ##############################################################################################################
 
@@ -265,7 +267,7 @@ class Game:
     board: list[list[Unit | None]] = field(default_factory=list)
     h_player: Player = Player.Attacker
     next_player: Player = Player.Attacker
-    turns_played : int = 0
+    turns_played : int = 1
     options: Options = field(default_factory=Options)
     stats: Stats = field(default_factory=Stats)
     _attacker_has_ai : bool = True
@@ -494,13 +496,14 @@ class Game:
                 mv = self.read_move()
                 (success,result) = self.perform_move(mv)
                 if success:
+                    logfile.write("\n")
                     logfile.write(f"Turn #{self.turns_played}: \n")
                     logfile.write(f"Player {self.next_player.name}: ")
                     print(f"Player {self.next_player.name}: ",end='')
                     logfile.write(result + "\n")
                     print(result + "\n")
 
-                    logfile.write(self.get_board() + "\n")
+                    logfile.write(self.get_board() + "\n\n")
                     self.next_turn()
                     break
                 else:
@@ -513,13 +516,14 @@ class Game:
         if mv is not None:
             (success,result) = self.perform_move(mv)
             if success:
+                logfile.write("\n")
                 logfile.write(f"Turn #{self.turns_played}: \n")
                 logfile.write(f"Computer {self.next_player.name}: ")
                 print(f"Computer {self.next_player.name}: ",end='')
                 logfile.write(result + "\n")
                 print(result + "\n")
 
-                logfile.write(self.get_board() + "\n")
+                logfile.write(self.get_board() + "\n\n")
                 self.next_turn()
         return mv
 
@@ -569,16 +573,28 @@ class Game:
         
 
     def minimax_alpha_beta(self, game, depth, alpha, beta, maximizing_player):
-        if depth == 0 or game.is_finished():
+        is_root_node = depth == self.options.max_depth  # Check if this is the root node
+        is_leaf_node = depth == 0 or game.is_finished()  # Check if this is a leaf node
+
+        # Count non-root nodes
+        if not is_root_node:
+            self.stats.non_root_nodes += 1
+
+        # Count non-leaf nodes
+        if not is_leaf_node:
+            self.stats.non_leaf_nodes += 1
+
+        # Existing code for leaf node evaluation
+        if is_leaf_node:
             if self.options.heuristic_type == "e0":
                 self.stats.evaluations_per_depth[self.options.max_depth - depth] = self.stats.evaluations_per_depth.get(self.options.max_depth - depth, 0) + 1
-                return game.heuristic_e0(), depth
+                return game.heuristic_e0()
             if self.options.heuristic_type == "e1":
                 self.stats.evaluations_per_depth[self.options.max_depth - depth] = self.stats.evaluations_per_depth.get(self.options.max_depth - depth, 0) + 1
-                return game.heuristic_e1(), depth
+                return game.heuristic_e1()
             if self.options.heuristic_type == "e2":
                 self.stats.evaluations_per_depth[self.options.max_depth - depth] = self.stats.evaluations_per_depth.get(self.options.max_depth - depth, 0) + 1
-                return game.heuristic_e2(), depth
+                return game.heuristic_e2()
 
         if maximizing_player:
             v = float('-inf')
@@ -659,23 +675,40 @@ class Game:
         elapsed_seconds = (datetime.now() - start_time).total_seconds()
         self.stats.total_seconds += elapsed_seconds
         print(f"Heuristic score: {score}")
+        logfile.write(f"Heuristic score: {score}\n")
         total_evals = sum(self.stats.evaluations_per_depth.values())
         print(f"Cumulative evaluations: {total_evals}")
+        logfile.write(f"Cumulative evaluations: {total_evals}\n")
         #Average branching factor 
         total_depths = len(self.stats.evaluations_per_depth)
-        average_branching_factor = total_evals / total_depths if total_depths else 0
+        if self.stats.non_leaf_nodes > 0:
+            average_branching_factor = self.stats.non_root_nodes/self.stats.non_leaf_nodes if total_depths else 0
+        else: 
+            average_branching_factor = 0
         print(f"Average branching factor: {average_branching_factor:0.1f}")
+        logfile.write(f"Average branching factor: {average_branching_factor:0.1f}\n")
+        self.stats.non_leaf_nodes = 0
+        self.stats.non_root_nodes = 0
         print(f"Evals per depth: ",end='')
+        logfile.write(f"Evals per depth: ")
         for k in sorted(self.stats.evaluations_per_depth.keys()):
             print(f"{k}:{self.stats.evaluations_per_depth[k]} ",end='')
+            logfile.write(f"{k}:{self.stats.evaluations_per_depth[k]} ")
         print()
+        logfile.write("\n")
         print(f"Cumulative evals per depth: ",end='')
+        logfile.write(f"Cumulative evals per depth: ")
         for k in sorted(self.stats.evaluations_per_depth.keys()):
             print(f"{k}:{(self.stats.evaluations_per_depth[k]/total_evals)*100:0.1f}% ",end='')
+            logfile.write(f"{k}:{(self.stats.evaluations_per_depth[k]/total_evals)*100:0.1f}% ")
         print()
+        logfile.write("\n")
         if self.stats.total_seconds > 0:
             print(f"Eval perf.: {total_evals/self.stats.total_seconds/1000:0.1f}k/s")
+            logfile.write(f"Eval perf.: {total_evals/self.stats.total_seconds/1000:0.1f}k/s")
+        logfile.write("\n")
         print(f"Elapsed time: {elapsed_seconds:0.1f}s")
+        logfile.write(f"Elapsed time: {elapsed_seconds:0.1f}s\n")
         return move
 
     def post_move_to_broker(self, move: CoordPair):
@@ -925,7 +958,7 @@ def main():
     # create a new game
     game = Game(options=options)
 
-    logfile.write(f"\n2. Initialtial game board:\n{game.get_board()}\n3. Gameplay trace:\n")
+    logfile.write(f"\n2. Initialtial game board:\n{game.get_board()}\n3. Gameplay trace:\n\n")
 
     # the main game loop
     try:
