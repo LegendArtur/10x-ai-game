@@ -605,7 +605,7 @@ class Game:
                 if not success:
                     continue
                 child_game.next_turn()
-                eval_value = self.minimax_alpha_beta(child_game, depth - 1, alpha, beta, False)
+                eval_value = self.minimax_alpha_beta(child_game, depth - 1, alpha, beta, False)     
                 v = max(v, eval_value)
                 alpha = max(alpha, v)
                 if beta <= alpha:
@@ -635,7 +635,9 @@ class Game:
 
         def worker():
             nonlocal best_move, max_eval
-
+            total_depth = 0
+            total_nodes = 0
+            
             for move in self.move_candidates():
                 # Check if we should stop searching due to time limit
                 if stop_search.is_set():
@@ -649,12 +651,11 @@ class Game:
                     continue
                 child_game.next_turn()
                 v = self.minimax_alpha_beta(child_game, depth - 1, float('-inf'), float('inf'), False)
-
+                
                 if v > max_eval:
                     max_eval = v
                     best_move = move
-
-
+                    
         thread = threading.Thread(target=worker)
         thread.start()
         thread.join(timeout=(self.options.max_time - 1)) # - 1 second for time for the rest of the turn logic to be performed
@@ -663,11 +664,12 @@ class Game:
             stop_search.set()  # Signal the thread to stop searching
             thread.join()  # Wait for the thread to actually finish
 
-        return max_eval, best_move
-    
+        return max_eval, best_move  
+
     def suggest_move(self) -> CoordPair | None:
         """Suggest the next move using minimax alpha beta. TODO: REPLACE RANDOM_MOVE WITH PROPER GAME LOGIC!!!"""
         start_time = datetime.now()
+        
         try:
             (score, move) = self.get_best_move(self.options.max_depth)
         except TimeLimitExceededException:
