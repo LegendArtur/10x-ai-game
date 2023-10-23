@@ -905,7 +905,7 @@ def main():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--max_depth', type=int, help='maximum search depth')
     parser.add_argument('--max_time', type=float, help='maximum search time')
-    parser.add_argument('--max_moves', type=float, help='maximum moves per game')
+    parser.add_argument('--max_moves', type=float, default=50, help='maximum moves per game')
     parser.add_argument('--game_type', type=str, default="attacker", help='game type: auto|attacker|defender|manual')
     parser.add_argument('--alpha_beta', type=bool, help='if a player is an AI, whether alpha-beta is on or off')
     parser.add_argument('--heuristic_type', type=str, help='heuristic type: e0|e1|e2')
