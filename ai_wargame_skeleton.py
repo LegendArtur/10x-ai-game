@@ -241,10 +241,10 @@ class Options:
     dim: int = 5
     max_depth : int | None = 4
     min_depth : int | None = 2
-    max_time : float | None = 5.0
+    max_time : float | None = 6.0
     game_type : GameType = GameType.AttackerVsDefender
     alpha_beta : bool = True
-    max_turns : int | None = 100
+    max_moves : int | None = 100
     randomize_moves : bool = True
     broker : str | None = None
     heuristic_type: str | None = "e0"
@@ -540,7 +540,7 @@ class Game:
 
     def has_winner(self) -> Player | None:
         """Check if the game is over and returns winner"""
-        if self.options.max_turns is not None and self.turns_played >= self.options.max_turns:
+        if self.options.max_moves is not None and self.turns_played >= self.options.max_moves:
             return Player.Defender
         elif self._attacker_has_ai:
             if self._defender_has_ai:
@@ -903,12 +903,12 @@ def main():
     parser = argparse.ArgumentParser(
         prog='ai_wargame',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('--max_depth', type=int, help='maximum search depth')
-    parser.add_argument('--max_time', type=float, help='maximum search time')
-    parser.add_argument('--max_moves', type=float, help='maximum moves per game')
+    parser.add_argument('--max_depth', type=int, default=4, help='maximum search depth')
+    parser.add_argument('--max_time', type=float, default=6.0, help='maximum search time')
+    parser.add_argument('--max_moves', type=float, default=100, help='maximum moves per game')
     parser.add_argument('--game_type', type=str, default="attacker", help='game type: auto|attacker|defender|manual')
-    parser.add_argument('--alpha_beta', type=bool, help='if a player is an AI, whether alpha-beta is on or off')
-    parser.add_argument('--heuristic_type', type=str, help='heuristic type: e0|e1|e2')
+    parser.add_argument('--alpha_beta', type=bool, default=True, help='if a player is an AI, whether alpha-beta is on or off')
+    parser.add_argument('--heuristic_type', type=str, default="e0", help='heuristic type: e0|e1|e2')
     parser.add_argument('--broker', type=str, help='play via a game broker')
     args = parser.parse_args()
 
@@ -953,7 +953,7 @@ def main():
     if args.heuristic_type is not None:
         options.heuristic_type = args.heuristic_type
     if args.max_moves is not None:
-        options.max_turns = int(args.max_moves)
+        options.max_moves = int(args.max_moves)
     if args.alpha_beta is not None:
         options.alpha_beta = args.alpha_beta
 
@@ -968,9 +968,9 @@ def main():
             print()
             print(game)
             winner = game.has_winner()
-            if game.turns_played == game.options.max_turns:
-                print(f"Tie, max number of turns played! {game.turns_played}/{game.options.max_turns}")
-                logfile.write(f"Tie, max number of turns played! {game.turns_played}/{game.options.max_turns}")
+            if game.turns_played == game.options.max_moves:
+                print(f"Tie, max number of turns played! {game.turns_played}/{game.options.max_moves}")
+                logfile.write(f"Tie, max number of turns played! {game.turns_played}/{game.options.max_moves}")
                 logfile.close()
                 os.rename('templog.txt', logfileName)
                 break
