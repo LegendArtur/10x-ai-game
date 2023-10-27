@@ -243,7 +243,7 @@ class Options:
     min_depth : int | None = 2
     max_time : float | None = 6.0
     game_type : GameType = GameType.AttackerVsDefender
-    alpha_beta : bool = True
+    alpha_beta : bool | None = True
     max_moves : int | None = 100
     randomize_moves : bool = True
     broker : str | None = None
@@ -607,9 +607,10 @@ class Game:
                 child_game.next_turn()
                 eval_value = self.minimax_alpha_beta(child_game, depth - 1, alpha, beta, False)     
                 v = max(v, eval_value)
-                alpha = max(alpha, v)
-                if beta <= alpha:
-                    break  # Beta cut-off
+                if self.options.alpha_beta:
+                    alpha = max(alpha, v)
+                    if beta <= alpha:
+                        break  # Beta cut-off
             return v
         else:
             v = float('inf')
@@ -622,9 +623,10 @@ class Game:
                 child_game.next_turn()
                 eval_value = self.minimax_alpha_beta(child_game, depth - 1, alpha, beta, True)
                 v = min(v, eval_value)
-                beta = min(beta, v)
-                if beta <= alpha:
-                    break  # Alpha cut-off
+                if self.options.alpha_beta:
+                    beta = min(beta, v)
+                    if beta <= alpha:
+                        break  # Alpha cut-off
             return v
 
     def get_best_move(self, depth):
@@ -635,8 +637,6 @@ class Game:
 
         def worker():
             nonlocal best_move, max_eval
-            total_depth = 0
-            total_nodes = 0
             
             for move in self.move_candidates():
                 # Check if we should stop searching due to time limit
@@ -899,46 +899,37 @@ class Game:
 ##############################################################################################################
 
 def main():
+
+    def str2bool(v):
+        if v.lower() in ('yes', 'true', 't', 'y', '1'):
+            return True
+        elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+            return False
+        else:
+            raise argparse.ArgumentTypeError('Boolean value expected.')
+
     # parse command line arguments
     parser = argparse.ArgumentParser(
         prog='ai_wargame',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('--max_depth', type=int, default=4, help='maximum search depth')
-    parser.add_argument('--max_time', type=float, default=6.0, help='maximum search time')
-    parser.add_argument('--max_moves', type=float, default=100, help='maximum moves per game')
+    parser.add_argument('--max_depth', type=int, help='maximum search depth')
+    parser.add_argument('--max_time', type=float, help='maximum search time')
+    parser.add_argument('--max_moves', type=float, help='maximum moves per game')
     parser.add_argument('--game_type', type=str, default="attacker", help='game type: auto|attacker|defender|manual')
-    parser.add_argument('--alpha_beta', type=bool, default=True, help='if a player is an AI, whether alpha-beta is on or off')
-    parser.add_argument('--heuristic_type', type=str, default="e0", help='heuristic type: e0|e1|e2')
+    parser.add_argument('--alpha_beta', type=str2bool, help='if a player is an AI, whether alpha-beta is on or off')
+    parser.add_argument('--heuristic_type', type=str, help='heuristic type: e0|e1|e2')
     parser.add_argument('--broker', type=str, help='play via a game broker')
     args = parser.parse_args()
 
-    logfileName = f"gameTrace-{args.alpha_beta}-{args.max_time}-{int(args.max_moves)}.txt"
-    counter = 0
-    while os.path.exists(logfileName):
-        logfileName = f"gameTrace-{args.alpha_beta}-{args.max_time}-{int(args.max_moves)}-{counter}.txt"
-        counter += 1
-
-    logfile.write(f"1. The game parameters:\n\ta. Timeout (in s): {args.max_time}\n\tb. Max number of turns: {args.max_moves}\n",)
-
-    
     # parse the game type
     if args.game_type == "attacker":
         game_type = GameType.AttackerVsComp
-        logfile.write(f"\tc. Play mode: Attacker (Human) vs Defender (AI)\n")
     elif args.game_type == "defender":
         game_type = GameType.CompVsDefender
-        logfile.write(f"\tc. Play mode: Attacker (AI) vs Defender (Human)\n")
     elif args.game_type == "manual":
         game_type = GameType.AttackerVsDefender
-        logfile.write(f"\tc. Play mode: Attacker (Human) vs Defender (Human)\n")
     else:
         game_type = GameType.CompVsComp
-        logfile.write(f"\tc. Play mode: Attacker (AI) vs Defender (AI)\n")
-
-    if not args.game_type == "manual":
-        logfile.write(f"\td. Alpha-Beta is:")
-        logfile.write(f" {'ON' if args.alpha_beta else 'OFF'}\n")
-        logfile.write(f"\te. Heuristic: {args.heuristic_type}\n",)
 
     # set up game options
     options = Options(game_type=game_type)
@@ -956,6 +947,29 @@ def main():
         options.max_moves = int(args.max_moves)
     if args.alpha_beta is not None:
         options.alpha_beta = args.alpha_beta
+    
+    logfileName = f"gameTrace-{options.alpha_beta}-{options.max_time}-{int(options.max_moves)}.txt"
+    counter = 0
+    while os.path.exists(logfileName):
+        logfileName = f"gameTrace-{options.alpha_beta}-{options.max_time}-{int(options.max_moves)}-{counter}.txt"
+        counter += 1
+
+    logfile.write(f"1. The game parameters:\n\ta. Timeout (in s): {options.max_time}\n\tb. Max number of turns: {args.max_moves}\n",)
+
+    # parse the game type
+    if args.game_type == "attacker":
+        logfile.write(f"\tc. Play mode: Attacker (Human) vs Defender (AI)\n")
+    elif args.game_type == "defender":
+        logfile.write(f"\tc. Play mode: Attacker (AI) vs Defender (Human)\n")
+    elif args.game_type == "manual":
+        logfile.write(f"\tc. Play mode: Attacker (Human) vs Defender (Human)\n")
+    else:
+        logfile.write(f"\tc. Play mode: Attacker (AI) vs Defender (AI)\n")
+
+    if not args.game_type == "manual":
+        logfile.write(f"\td. Alpha-Beta is:")
+        logfile.write(f" {'ON' if options.alpha_beta else 'OFF'}\n")
+        logfile.write(f"\te. Heuristic: {options.heuristic_type}\n",)
 
     # create a new game
     game = Game(options=options)
@@ -968,6 +982,10 @@ def main():
             print()
             print(game)
             winner = game.has_winner()
+            if game.stats.total_seconds >= options.max_time:
+                print(f"Player {game.next_player.next().name} took too much time to perform turn with {game.stats.total_seconds:0.1f}s, immediate forfeit.")
+                logfile.write(f"Player {game.next_player.next().name} took too much time to perform turn with {game.stats.total_seconds:0.1f}s, immediate forfeit.\n")
+                winner = game.next_player
             if game.turns_played == game.options.max_moves:
                 print(f"Tie, max number of turns played! {game.turns_played}/{game.options.max_moves}")
                 logfile.write(f"Tie, max number of turns played! {game.turns_played}/{game.options.max_moves}")
@@ -980,6 +998,7 @@ def main():
                 logfile.close()
                 os.rename('templog.txt', logfileName)
                 break
+            game.stats.total_seconds = 0
             if game.options.game_type == GameType.AttackerVsDefender:
                 game.human_turn()
             elif game.options.game_type == GameType.AttackerVsComp and game.next_player == Player.Attacker:
