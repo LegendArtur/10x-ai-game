@@ -1,0 +1,209 @@
+1. The game parameters:
+	a. Timeout (in s): 10.0
+	b. Max number of turns: 10.0
+	c. Play mode: Attacker (AI) vs Defender (AI)
+	d. Alpha-Beta is: ON
+	e. Heuristic: e1
+
+2. Initialtial game board:
+
+    0   1   2   3   4  
+A: dA9 dT9 dF9  .   .  
+B: dT9 dP9  .   .   .  
+C: dF9  .   .   .  aP9 
+D:  .   .   .  aF9 aV9 
+E:  .   .  aP9 aV9 aA9 
+
+3. Gameplay trace:
+
+Heuristic score: 0
+Cumulative evaluations: 3467
+Average branching factor: 5.8
+Evals per depth: 1:1 2:11 3:22 4:3433 
+Cumulative evals per depth: 1:0.0% 2:0.3% 3:0.6% 4:99.0% 
+Eval perf.: 3.2k/s
+Elapsed time: 1.1s
+
+Turn #0: 
+Computer Attacker: C4 B4
+
+    0   1   2   3   4  
+A: dA9 dT9 dF9  .   .  
+B: dT9 dP9  .   .  aP9 
+C: dF9  .   .   .   .  
+D:  .   .   .  aF9 aV9 
+E:  .   .  aP9 aV9 aA9 
+
+
+Heuristic score: 0
+Cumulative evaluations: 6486
+Average branching factor: 7.0
+Evals per depth: 1:2 2:22 3:135 4:6327 
+Cumulative evals per depth: 1:0.0% 2:0.3% 3:2.1% 4:97.5% 
+Eval perf.: 6.9k/s
+Elapsed time: 0.9s
+
+Turn #1: 
+Computer Defender: A2 B2
+
+    0   1   2   3   4  
+A: dA9 dT9  .   .   .  
+B: dT9 dP9 dF9  .  aP9 
+C: dF9  .   .   .   .  
+D:  .   .   .  aF9 aV9 
+E:  .   .  aP9 aV9 aA9 
+
+
+Heuristic score: 0
+Cumulative evaluations: 9123
+Average branching factor: 5.3
+Evals per depth: 1:3 2:34 3:147 4:8939 
+Cumulative evals per depth: 1:0.0% 2:0.4% 3:1.6% 4:98.0% 
+Eval perf.: 10.9k/s
+Elapsed time: 0.8s
+
+Turn #2: 
+Computer Attacker: B4 A4
+
+    0   1   2   3   4  
+A: dA9 dT9  .   .  aP9 
+B: dT9 dP9 dF9  .   .  
+C: dF9  .   .   .   .  
+D:  .   .   .  aF9 aV9 
+E:  .   .  aP9 aV9 aA9 
+
+
+Heuristic score: 0
+Cumulative evaluations: 11500
+Average branching factor: 6.5
+Evals per depth: 1:4 2:45 3:239 4:11212 
+Cumulative evals per depth: 1:0.0% 2:0.4% 3:2.1% 4:97.5% 
+Eval perf.: 17.4k/s
+Elapsed time: 0.7s
+
+Turn #3: 
+Computer Defender: A1 A2
+
+    0   1   2   3   4  
+A: dA9  .  dT9  .  aP9 
+B: dT9 dP9 dF9  .   .  
+C: dF9  .   .   .   .  
+D:  .   .   .  aF9 aV9 
+E:  .   .  aP9 aV9 aA9 
+
+
+Heuristic score: 0
+Cumulative evaluations: 14467
+Average branching factor: 5.5
+Evals per depth: 1:5 2:56 3:251 4:14155 
+Cumulative evals per depth: 1:0.0% 2:0.4% 3:1.7% 4:97.8% 
+Eval perf.: 17.1k/s
+Elapsed time: 0.8s
+
+Turn #4: 
+Computer Attacker: A4 A3
+
+    0   1   2   3   4  
+A: dA9  .  dT9 aP9  .  
+B: dT9 dP9 dF9  .   .  
+C: dF9  .   .   .   .  
+D:  .   .   .  aF9 aV9 
+E:  .   .  aP9 aV9 aA9 
+
+
+Heuristic score: -6
+Cumulative evaluations: 16994
+Average branching factor: 5.9
+Evals per depth: 1:6 2:69 3:295 4:16624 
+Cumulative evals per depth: 1:0.0% 2:0.4% 3:1.7% 4:97.8% 
+Eval perf.: 24.5k/s
+Elapsed time: 0.7s
+
+Turn #5: 
+Computer Defender: A2 A1
+
+    0   1   2   3   4  
+A: dA9 dT9  .  aP9  .  
+B: dT9 dP9 dF9  .   .  
+C: dF9  .   .   .   .  
+D:  .   .   .  aF9 aV9 
+E:  .   .  aP9 aV9 aA9 
+
+
+Heuristic score: 3
+Cumulative evaluations: 19468
+Average branching factor: 4.9
+Evals per depth: 1:7 2:80 3:316 4:19065 
+Cumulative evals per depth: 1:0.0% 2:0.4% 3:1.6% 4:97.9% 
+Eval perf.: 25.1k/s
+Elapsed time: 0.8s
+
+Turn #6: 
+Computer Attacker: A3 A2
+
+    0   1   2   3   4  
+A: dA9 dT9 aP9  .   .  
+B: dT9 dP9 dF9  .   .  
+C: dF9  .   .   .   .  
+D:  .   .   .  aF9 aV9 
+E:  .   .  aP9 aV9 aA9 
+
+
+Heuristic score: -3
+Cumulative evaluations: 19870
+Average branching factor: 4.1
+Evals per depth: 1:8 2:90 3:707 4:19065 
+Cumulative evals per depth: 1:0.0% 2:0.5% 3:3.6% 4:95.9% 
+Eval perf.: 141.2k/s
+Elapsed time: 0.1s
+
+Turn #7: 
+Computer Defender: B1 C1
+
+    0   1   2   3   4  
+A: dA9 dT9 aP9  .   .  
+B: dT9  .  dF9  .   .  
+C: dF9 dP9  .   .   .  
+D:  .   .   .  aF9 aV9 
+E:  .   .  aP9 aV9 aA9 
+
+
+Heuristic score: 3
+Cumulative evaluations: 20030
+Average branching factor: 14.3
+Evals per depth: 1:9 2:249 3:707 4:19065 
+Cumulative evals per depth: 1:0.0% 2:1.2% 3:3.5% 4:95.2% 
+Eval perf.: 450.7k/s
+Elapsed time: 0.0s
+
+Turn #8: 
+Computer Attacker: A2 A1
+
+    0   1   2   3   4  
+A: dA9 dT6 aP8  .   .  
+B: dT9  .  dF9  .   .  
+C: dF9 dP9  .   .   .  
+D:  .   .   .  aF9 aV9 
+E:  .   .  aP9 aV9 aA9 
+
+
+Heuristic score: -3
+Cumulative evaluations: 20044
+Average branching factor: 0.0
+Evals per depth: 1:23 2:249 3:707 4:19065 
+Cumulative evals per depth: 1:0.1% 2:1.2% 3:3.5% 4:95.1% 
+Eval perf.: 4916.4k/s
+Elapsed time: 0.0s
+
+Turn #9: 
+Computer Defender: A0 A1
+
+    0   1   2   3   4  
+A: dA9 dT7 aP8  .   .  
+B: dT9  .  dF9  .   .  
+C: dF9 dP9  .   .   .  
+D:  .   .   .  aF9 aV9 
+E:  .   .  aP9 aV9 aA9 
+
+
+Tie, max number of turns played! 10/10

@@ -239,7 +239,7 @@ class CoordPair:
 class Options:
     """Representation of the game options."""
     dim: int = 5
-    max_depth : int | None = 4
+    max_depth : int | None = 5
     min_depth : int | None = 2
     max_time : float | None = 6.0
     game_type : GameType = GameType.AttackerVsDefender
@@ -247,7 +247,7 @@ class Options:
     max_moves : int | None = 100
     randomize_moves : bool = True
     broker : str | None = None
-    heuristic_type: str | None = "e0"
+    heuristic_type: str | None = "e2"
 
 ##############################################################################################################
 
@@ -770,7 +770,7 @@ class Game:
         LOSS_SCORE = -999999  # A very high negative score for losing
         MOVE_TOWARDS_AI_WEIGHT = 6000
         HEALTH_FACTOR = 100  # Adjust as needed to increase/decrease the influence of health
-        AI_HEALTH_WEIGHT = 2000 # High factor for AI health so that units are motivated to go for AI.
+        AI_HEALTH_WEIGHT = 9999 # High factor for AI health so that units are motivated to go for AI.
         
         ai_location_opponent = None
         ai_location_self = None
